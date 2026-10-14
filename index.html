@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Fall Weekly Schedule & Quota Planner</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fall Weekly Schedule &amp; Quota Planner</title>
   <style>
     :root {
       --bg: #0f172a; --panel: #1e293b; --border: #334155;
@@ -62,17 +62,87 @@
     .cat-hw { background: rgba(245,158,11,0.88); color: #0f172a; }
     .cat-work { background: rgba(6,182,212,0.85); color: #0f172a; }
     .cat-personal { background: rgba(236,72,153,0.85); color: #fff; }
+
+    /* PIN Lock Overlay Styles */
+    .pin-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      display: flex; align-items: center; justify-content: center; padding: 16px;
+    }
+    .pin-overlay.hidden { display: none; }
+    .pin-card {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+      padding: 24px 22px; width: 100%; max-width: 320px; text-align: center;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+    .pin-card h2 { font-size: 1.15rem; margin-bottom: 6px; }
+    .pin-card p { font-size: 0.78rem; color: var(--muted); margin-bottom: 16px; }
+    .pin-dots { display: flex; justify-content: center; gap: 12px; margin-bottom: 14px; }
+    .pin-dot {
+      width: 44px; height: 48px; border-radius: 9px; background: #0f172a;
+      border: 2px solid var(--border); display: flex; align-items: center;
+      justify-content: center; font-size: 1.35rem; font-weight: 700; color: var(--text);
+    }
+    .pin-dot.filled { border-color: #3b82f6; color: #38bdf8; }
+    .pin-dot.error { border-color: #ef4444; color: #ef4444; }
+    .pin-error-msg { color: #f87171; font-size: 0.76rem; font-weight: 600; min-height: 18px; margin-bottom: 10px; }
+    .pin-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .pin-key {
+      background: #0f172a; color: var(--text); border: 1px solid var(--border);
+      border-radius: 9px; padding: 12px 0; font-size: 1rem; font-weight: 700;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .pin-key:hover { background: #334155; }
+    .pin-key:active { transform: scale(0.97); }
+    .pin-key.sub-key { font-size: 0.78rem; color: var(--muted); font-weight: 600; }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-7px); }
+      75% { transform: translateX(7px); }
+    }
+    .shake { animation: shake 0.25s ease-in-out; }
   </style>
 </head>
 <body>
+  <!-- PIN Lock Modal -->
+  <div class="pin-overlay" id="pinOverlay">
+    <div class="pin-card" id="pinCard">
+      <h2>🔒 Schedule Protected</h2>
+      <p>Enter the 4-digit site password to view and edit Ryan's Fall Schedule.</p>
+      <div class="pin-dots" id="pinDots">
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+      </div>
+      <div class="pin-error-msg" id="pinErrorMsg"></div>
+      <div class="pin-keypad">
+        <button class="pin-key" data-key="1">1</button>
+        <button class="pin-key" data-key="2">2</button>
+        <button class="pin-key" data-key="3">3</button>
+        <button class="pin-key" data-key="4">4</button>
+        <button class="pin-key" data-key="5">5</button>
+        <button class="pin-key" data-key="6">6</button>
+        <button class="pin-key" data-key="7">7</button>
+        <button class="pin-key" data-key="8">8</button>
+        <button class="pin-key" data-key="9">9</button>
+        <button class="pin-key sub-key" data-key="clear">Clear</button>
+        <button class="pin-key" data-key="0">0</button>
+        <button class="pin-key sub-key" data-key="back">⌫</button>
+      </div>
+    </div>
+  </div>
+
   <div class="app-container">
     <div class="header">
       <div>
-        <h1>Fall Schedule & Quota Tracker (7:00 AM – 12:00 AM)</h1>
+        <h1>Fall Schedule &amp; Quota Tracker (7:00 AM – 12:00 AM)</h1>
         <p style="font-size: 0.78rem; color: var(--muted);">Click any date under a day to edit it. Use the export buttons below to save or share your schedule.</p>
       </div>
       <div class="header-actions">
-        <button class="action-btn" id="restoreDefaultBtn">Restore Oct 13 Schedule</button>
+        <button class="action-btn" id="lockSiteBtn">🔒 Lock Site</button>
+        <button class="action-btn" id="restoreDefaultBtn">Restore Default Schedule</button>
         <button class="action-btn danger" id="clearFlexBtn">Clear Flexible</button>
       </div>
     </div>
@@ -83,17 +153,17 @@
           <span class="sync-label">Portable Save:</span>
           <button class="action-btn primary" id="copyHtmlBtn">Copy Full HTML (Baked-In Schedule)</button>
           <button class="action-btn success" id="copyJsonBtn">Copy Save Code (For Chat / Backup)</button>
-          <span class="toast-msg" id="toastMsg">Copied! ✓</span>
+          <span class="toast-msg" id="toastMsg">Full HTML copied! ✓</span>
         </div>
         <div class="sync-group">
           <span class="sync-label">Auto-Fill Week From Monday:</span>
-          <input type="date" id="weekStartPicker" class="date-picker-input" value="2026-10-12" />
+          <input type="date" id="weekStartPicker" class="date-picker-input" value="2026-10-12">
         </div>
       </div>
       <div class="sync-row">
         <div class="sync-group" style="width: 100%;">
           <span class="sync-label">Load Save Code:</span>
-          <input type="text" id="importCodeInput" class="code-input" placeholder="Paste Save Code JSON here to restore schedule & dates..." />
+          <input type="text" id="importCodeInput" class="code-input" placeholder="Paste Save Code JSON here to restore schedule &amp; dates...">
           <button class="action-btn" id="loadJsonBtn">Apply Save Code</button>
         </div>
       </div>
@@ -101,19 +171,19 @@
 
     <div class="dashboard">
       <div class="quota-card">
-        <div class="quota-header"><span>Capstone Work Quota</span><span id="capText">0.0 / 9.0 hrs</span></div>
+        <div class="quota-header"><span>Capstone Work Quota</span><span id="capText">0.00 / 9.0 hrs</span></div>
         <div class="progress-track"><div class="progress-fill" id="capBar" style="background: var(--quota-capstone);"></div></div>
-        <div class="quota-sub"><span>Target: 9 hrs/wk</span><span id="capStatus">9.0 hrs remaining</span></div>
+        <div class="quota-sub"><span>Target: 9 hrs/wk</span><span id="capStatus">9.00 hrs remaining</span></div>
       </div>
       <div class="quota-card">
-        <div class="quota-header"><span>Internship Applications</span><span id="internText">0.0 / 7.0 hrs</span></div>
+        <div class="quota-header"><span>Internship Applications</span><span id="internText">0.00 / 7.0 hrs</span></div>
         <div class="progress-track"><div class="progress-fill" id="internBar" style="background: var(--quota-intern);"></div></div>
-        <div class="quota-sub"><span>Target: 7 hrs/wk</span><span id="internStatus">7.0 hrs remaining</span></div>
+        <div class="quota-sub"><span>Target: 7 hrs/wk</span><span id="internStatus">7.00 hrs remaining</span></div>
       </div>
       <div class="quota-card">
-        <div class="quota-header"><span>Homework & Study</span><span id="hwText">0.0 / 6.0 hrs</span></div>
+        <div class="quota-header"><span>Homework &amp; Study</span><span id="hwText">0.00 / 6.0 hrs</span></div>
         <div class="progress-track"><div class="progress-fill" id="hwBar" style="background: var(--quota-hw);"></div></div>
-        <div class="quota-sub"><span>Target: 6 hrs/wk</span><span id="hwStatus">6.0 hrs remaining</span></div>
+        <div class="quota-sub"><span>Target: 6 hrs/wk</span><span id="hwStatus">6.00 hrs remaining</span></div>
       </div>
     </div>
 
@@ -132,6 +202,11 @@
   </div>
 
   <script>
+    const SITE_PIN = "6095";
+    const AUTH_SESSION_KEY = "fall_schedule_unlocked_v3";
+    let isUnlocked = sessionStorage.getItem(AUTH_SESSION_KEY) === "true";
+    let enteredPin = "";
+
     const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
     const START_HOUR = 7, END_HOUR = 24;
     const STORAGE_KEY = "fall_schedule_planner_v3", DATES_STORAGE_KEY = "fall_schedule_dates_v3";
@@ -158,34 +233,94 @@
 
     function timeToMinutes(t) { const [h, m] = t.split(":").map(Number); return h * 60 + m; }
 
-    function expandRanges(ranges) {
-      const map = {};
-      ranges.forEach(([day, s, e, cat]) => {
-        for (let m = timeToMinutes(s); m < timeToMinutes(e); m += 15) {
-          map[`${day}_${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`] = cat;
-        }
-      });
-      return map;
+    /* === STATE_START === */
+    const DEFAULT_DATES = {"Mon":"10/12","Tue":"10/13","Wed":"10/14","Thu":"10/15","Fri":"10/16","Sat":"10/17","Sun":"10/18"};
+    const DEFAULT_SCHEDULE = {"Mon_11:45":"hw","Mon_12:00":"hw","Mon_12:15":"hw","Mon_12:30":"hw","Mon_12:45":"hw","Mon_13:00":"hw","Mon_14:15":"capstone","Mon_14:30":"capstone","Mon_14:45":"capstone","Mon_15:00":"capstone","Mon_15:15":"capstone","Mon_15:30":"capstone","Mon_15:45":"capstone","Mon_16:00":"capstone","Mon_16:15":"capstone","Mon_16:30":"capstone","Mon_16:45":"capstone","Mon_17:00":"capstone","Mon_17:15":"capstone","Mon_17:30":"capstone","Mon_17:45":"capstone","Mon_18:00":"capstone","Mon_18:15":"capstone","Mon_18:30":"capstone","Mon_18:45":"capstone","Mon_19:00":"capstone","Wed_11:45":"personal","Wed_12:00":"personal","Wed_12:15":"capstone","Wed_12:30":"capstone","Wed_12:45":"capstone","Wed_13:00":"capstone","Wed_18:00":"intern","Wed_18:15":"intern","Wed_18:30":"intern","Wed_18:45":"intern","Wed_19:00":"personal","Wed_19:15":"personal","Wed_19:30":"personal","Wed_19:45":"personal","Wed_22:00":"hw","Wed_22:15":"hw","Wed_22:30":"hw","Wed_22:45":"hw","Wed_23:00":"personal","Wed_23:15":"personal","Wed_23:30":"hw","Wed_23:45":"hw","Thu_08:30":"capstone","Thu_08:45":"capstone","Thu_09:00":"capstone","Thu_09:15":"capstone","Thu_09:30":"capstone","Thu_09:45":"capstone","Thu_10:00":"capstone","Thu_10:15":"capstone","Thu_10:30":"capstone","Thu_10:45":"capstone","Thu_11:00":"capstone","Thu_11:15":"capstone","Thu_11:30":"capstone","Thu_11:45":"capstone","Thu_12:00":"capstone","Thu_13:45":"personal","Thu_14:00":"personal","Thu_14:15":"hw","Thu_14:30":"hw","Thu_14:45":"hw","Thu_15:00":"hw","Thu_15:15":"intern","Thu_15:30":"intern","Thu_15:45":"intern","Thu_16:00":"work","Thu_16:15":"work","Thu_16:30":"work","Thu_16:45":"work","Thu_17:00":"work","Thu_17:15":"work","Thu_17:30":"work","Thu_17:45":"work","Thu_18:00":"work","Thu_18:15":"work","Thu_18:30":"work","Thu_18:45":"work","Thu_19:00":"work","Thu_19:15":"work","Thu_19:30":"work","Thu_19:45":"work","Thu_20:00":"work","Thu_20:15":"work","Thu_20:30":"personal","Thu_20:45":"personal","Thu_21:00":"capstone","Thu_21:15":"capstone","Thu_21:30":"capstone","Thu_21:45":"capstone","Thu_22:00":"capstone","Thu_22:15":"capstone","Thu_22:30":"capstone","Thu_22:45":"capstone","Thu_23:00":"intern","Thu_23:15":"intern","Thu_23:30":"intern","Thu_23:45":"intern","Fri_11:45":"personal","Fri_12:00":"personal","Fri_12:15":"intern","Fri_12:30":"intern","Fri_12:45":"intern","Fri_13:00":"intern","Fri_14:15":"personal","Fri_14:30":"personal","Fri_14:45":"personal","Fri_15:00":"personal","Fri_15:15":"personal","Fri_15:30":"personal","Fri_15:45":"personal","Fri_16:00":"personal","Fri_16:15":"personal","Fri_16:30":"personal","Fri_16:45":"personal","Fri_17:00":"work","Fri_17:15":"work","Fri_17:30":"work","Fri_17:45":"work","Fri_18:00":"work","Fri_18:15":"work","Fri_18:30":"work","Fri_18:45":"work","Fri_19:00":"work","Fri_19:15":"work","Fri_19:30":"work","Fri_19:45":"work","Fri_20:00":"work","Fri_20:15":"work","Fri_20:30":"work","Fri_20:45":"work","Fri_21:30":"intern","Fri_21:45":"intern","Fri_22:00":"intern","Fri_22:15":"intern","Fri_22:30":"personal","Fri_22:45":"personal","Fri_23:00":"hw","Fri_23:15":"hw","Fri_23:30":"hw","Fri_23:45":"hw","Sat_10:30":"hw","Sat_10:45":"hw","Sat_11:00":"hw","Sat_11:15":"hw","Sat_11:30":"intern","Sat_11:45":"intern","Sat_12:00":"intern","Sat_12:15":"intern","Sat_12:30":"work","Sat_12:45":"work","Sat_13:00":"work","Sat_13:15":"work","Sat_13:30":"work","Sat_13:45":"work","Sat_14:00":"work","Sat_14:15":"work","Sat_14:30":"work","Sat_14:45":"work","Sat_15:00":"work","Sat_15:15":"work","Sat_15:30":"work","Sat_15:45":"work","Sat_16:00":"work","Sat_16:15":"work","Sat_16:30":"work","Sat_16:45":"work","Sat_17:00":"work","Sat_17:15":"work","Sat_17:30":"work","Sat_17:45":"work","Sat_18:00":"work","Sat_18:15":"work","Sat_18:30":"work","Sat_18:45":"work","Sat_19:00":"work","Sat_19:15":"work","Sat_19:30":"work","Sat_19:45":"work","Sat_20:00":"work","Sat_20:15":"work","Sat_20:30":"work","Sat_20:45":"work","Sat_21:00":"work","Sat_21:15":"work","Sat_22:00":"hw","Sat_22:15":"hw","Sat_22:30":"hw","Sat_22:45":"hw","Sat_23:00":"hw","Sat_23:15":"hw","Sat_23:30":"hw","Sat_23:45":"hw","Sun_08:00":"personal","Sun_08:15":"personal","Sun_08:30":"personal","Sun_08:45":"personal","Sun_09:00":"personal","Sun_09:15":"personal","Sun_09:30":"personal","Sun_09:45":"personal","Sun_10:00":"personal","Sun_10:15":"personal","Sun_10:30":"personal","Sun_10:45":"personal","Sun_11:00":"personal","Sun_11:15":"personal","Sun_11:30":"personal","Sun_11:45":"personal","Sun_12:00":"personal","Sun_12:15":"personal","Sun_12:30":"personal","Sun_12:45":"personal","Sun_13:00":"personal","Sun_13:15":"personal","Sun_13:30":"personal","Sun_13:45":"personal","Sun_17:00":"work","Sun_17:15":"work","Sun_17:30":"work","Sun_17:45":"work","Sun_18:00":"work","Sun_18:15":"work","Sun_18:30":"work","Sun_18:45":"work","Sun_19:00":"work","Sun_19:15":"work","Sun_19:30":"work","Sun_19:45":"work","Sun_20:00":"work","Sun_20:15":"work","Sun_20:30":"work","Sun_20:45":"work","Sun_21:00":"work","Sun_21:15":"work","Sun_22:00":"hw","Sun_22:15":"hw","Sun_22:30":"hw","Sun_22:45":"hw","Sun_23:00":"hw","Sun_23:15":"hw","Sun_23:30":"hw","Sun_23:45":"hw"};
+    /* === STATE_END === */
+
+    /* PIN Lock Logic */
+    function syncPinOverlay() {
+      const overlay = document.getElementById("pinOverlay");
+      if (isUnlocked) overlay.classList.add("hidden");
+      else overlay.classList.remove("hidden");
     }
 
-    /* === STATE_START === */
-    const DEFAULT_DATES = { Mon: "10/12", Tue: "10/13 (Today)", Wed: "10/14", Thu: "10/15", Fri: "10/16", Sat: "10/17", Sun: "10/18" };
-    const DEFAULT_SCHEDULE = expandRanges([
-      ["Mon", "11:45", "13:15", "hw"], ["Mon", "14:15", "19:15", "capstone"],
-      ["Wed", "11:45", "12:15", "personal"], ["Wed", "12:15", "13:15", "capstone"],
-      ["Wed", "18:00", "19:00", "intern"], ["Wed", "19:00", "20:00", "personal"],
-      ["Wed", "22:00", "23:00", "intern"], ["Wed", "23:00", "23:30", "personal"], ["Wed", "23:30", "24:00", "intern"],
-      ["Thu", "08:30", "12:15", "capstone"], ["Thu", "13:45", "14:15", "personal"],
-      ["Thu", "14:15", "15:15", "hw"], ["Thu", "15:15", "16:00", "intern"],
-      ["Thu", "16:00", "20:30", "work"], ["Thu", "20:30", "21:00", "personal"],
-      ["Thu", "21:00", "23:00", "capstone"], ["Thu", "23:00", "24:00", "intern"],
-      ["Fri", "11:45", "12:15", "personal"], ["Fri", "12:15", "13:15", "intern"],
-      ["Fri", "14:15", "17:00", "personal"], ["Fri", "17:00", "21:00", "work"], ["Fri", "21:30", "24:00", "hw"],
-      ["Sat", "10:30", "11:30", "hw"], ["Sat", "11:30", "12:30", "intern"],
-      ["Sat", "12:30", "21:30", "work"], ["Sat", "22:00", "24:00", "hw"],
-      ["Sun", "08:00", "14:00", "personal"], ["Sun", "17:00", "21:30", "work"], ["Sun", "22:00", "24:00", "hw"]
-    ]);
-    /* === STATE_END === */
+    function updatePinDots(isError = false) {
+      const dots = document.querySelectorAll("#pinDots .pin-dot");
+      dots.forEach((dot, idx) => {
+        dot.classList.toggle("filled", idx < enteredPin.length && !isError);
+        dot.classList.toggle("error", isError);
+        dot.textContent = idx < enteredPin.length ? "●" : "";
+      });
+    }
+
+    function handlePinKey(key) {
+      if (isUnlocked) return;
+      const errEl = document.getElementById("pinErrorMsg");
+      errEl.textContent = "";
+
+      if (key === "clear") {
+        enteredPin = "";
+        updatePinDots();
+        return;
+      }
+      if (key === "back") {
+        enteredPin = enteredPin.slice(0, -1);
+        updatePinDots();
+        return;
+      }
+      if (/^\d$/.test(key) && enteredPin.length < 4) {
+        enteredPin += key;
+        updatePinDots();
+        if (enteredPin.length === 4) {
+          if (enteredPin === SITE_PIN) {
+            isUnlocked = true;
+            sessionStorage.setItem(AUTH_SESSION_KEY, "true");
+            enteredPin = "";
+            updatePinDots();
+            syncPinOverlay();
+          } else {
+            errEl.textContent = "Incorrect PIN. Try again.";
+            updatePinDots(true);
+            const card = document.getElementById("pinCard");
+            card.classList.remove("shake");
+            void card.offsetWidth;
+            card.classList.add("shake");
+            setTimeout(() => {
+              enteredPin = "";
+              updatePinDots(false);
+            }, 450);
+          }
+        }
+      }
+    }
+
+    function requireUnlock() {
+      if (!isUnlocked) {
+        syncPinOverlay();
+        return false;
+      }
+      return true;
+    }
+
+    document.querySelectorAll(".pin-key").forEach(btn => {
+      btn.onclick = () => handlePinKey(btn.dataset.key);
+    });
+
+    window.addEventListener("keydown", (e) => {
+      if (isUnlocked) return;
+      if (e.key >= "0" && e.key <= "9") handlePinKey(e.key);
+      else if (e.key === "Backspace") handlePinKey("back");
+      else if (e.key === "Escape") handlePinKey("clear");
+    });
+
+    document.getElementById("lockSiteBtn").onclick = () => {
+      isUnlocked = false;
+      enteredPin = "";
+      sessionStorage.removeItem(AUTH_SESSION_KEY);
+      updatePinDots();
+      syncPinOverlay();
+    };
 
     let currentTool = "capstone", isMouseDown = false;
     let savedSchedule = { ...DEFAULT_SCHEDULE }, savedDates = { ...DEFAULT_DATES };
@@ -251,6 +386,7 @@
         inp.type = "text"; inp.className = "day-date-input";
         inp.value = savedDates[day] || ""; inp.placeholder = "MM/DD";
         inp.oninput = (e) => {
+          if (!requireUnlock()) { e.target.value = savedDates[day] || ""; return; }
           savedDates[day] = e.target.value;
           localStorage.setItem(DATES_STORAGE_KEY, JSON.stringify(savedDates));
           renderDayTabs();
@@ -284,8 +420,8 @@
                 slot.classList.add(CATEGORY_META[cat].className);
                 slot.dataset.category = cat;
               }
-              slot.onmousedown = (e) => { if (e.button === 0) { isMouseDown = true; applyTool(slot); } };
-              slot.onmouseenter = () => { if (isMouseDown) applyTool(slot); };
+              slot.onmousedown = (e) => { if (e.button === 0 && requireUnlock()) { isMouseDown = true; applyTool(slot); } };
+              slot.onmouseenter = () => { if (isMouseDown && requireUnlock()) applyTool(slot); };
             }
             grid.appendChild(slot);
           });
@@ -295,7 +431,7 @@
     }
 
     function applyTool(slot) {
-      if (slot.classList.contains("locked")) return;
+      if (!requireUnlock() || slot.classList.contains("locked")) return;
       const id = slot.dataset.slotId;
       Object.values(CATEGORY_META).forEach(m => slot.classList.remove(m.className));
       delete slot.dataset.category;
@@ -349,6 +485,7 @@
     }
 
     document.getElementById("copyJsonBtn").onclick = () => {
+      if (!requireUnlock()) return;
       const payload = JSON.stringify({ dates: savedDates, schedule: savedSchedule });
       navigator.clipboard.writeText(payload).then(() => {
         document.getElementById("importCodeInput").value = payload;
@@ -357,18 +494,26 @@
     };
 
     document.getElementById("copyHtmlBtn").onclick = () => {
+      if (!requireUnlock()) return;
+      const clone = document.documentElement.cloneNode(true);
+      const cloneOverlay = clone.querySelector("#pinOverlay");
+      if (cloneOverlay) cloneOverlay.classList.remove("hidden");
+      const cloneToast = clone.querySelector("#toastMsg");
+      if (cloneToast) cloneToast.style.display = "none";
+
       const startTag = "/* === STATE_" + "START === */";
       const endTag = "/* === STATE_" + "END === */";
-      const src = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+      const src = "<!DOCTYPE html>\n" + clone.outerHTML;
       const sIdx = src.indexOf(startTag), eIdx = src.indexOf(endTag);
       if (sIdx !== -1 && eIdx !== -1) {
         const baked = `${startTag}\n    const DEFAULT_DATES = ${JSON.stringify(savedDates)};\n    const DEFAULT_SCHEDULE = ${JSON.stringify(savedSchedule)};\n    `;
         const updatedHtml = src.slice(0, sIdx) + baked + src.slice(eIdx);
-        navigator.clipboard.writeText(updatedHtml).then(() => showToast("Full HTML copied! ✓"));
+        navigator.clipboard.writeText(updatedHtml).then(() => showToast("Full HTML copied (with PIN lock active)! ✓"));
       }
     };
 
     document.getElementById("loadJsonBtn").onclick = () => {
+      if (!requireUnlock()) return;
       try {
         const parsed = JSON.parse(document.getElementById("importCodeInput").value.trim());
         if (parsed.schedule) savedSchedule = parsed.schedule;
@@ -380,7 +525,7 @@
     };
 
     document.getElementById("weekStartPicker").onchange = (e) => {
-      if (!e.target.value) return;
+      if (!requireUnlock() || !e.target.value) return;
       const [y, m, d] = e.target.value.split("-").map(Number);
       const base = new Date(y, m - 1, d);
       DAYS.forEach((day, i) => {
@@ -392,7 +537,8 @@
     };
 
     document.getElementById("restoreDefaultBtn").onclick = () => {
-      if (confirm("Restore the schedule from your Oct 13 screenshot?")) {
+      if (!requireUnlock()) return;
+      if (confirm("Restore the default baked-in schedule?")) {
         savedSchedule = { ...DEFAULT_SCHEDULE }; savedDates = { ...DEFAULT_DATES };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(savedSchedule));
         localStorage.setItem(DATES_STORAGE_KEY, JSON.stringify(savedDates));
@@ -401,6 +547,7 @@
     };
 
     document.getElementById("clearFlexBtn").onclick = () => {
+      if (!requireUnlock()) return;
       if (confirm("Clear all flexible blocks?")) {
         savedSchedule = {}; localStorage.setItem(STORAGE_KEY, "{}"); buildGrid();
       }
@@ -409,11 +556,13 @@
     window.onmouseup = () => isMouseDown = false;
     document.querySelectorAll(".tool-btn").forEach(btn => {
       btn.onclick = () => {
+        if (!requireUnlock()) return;
         document.querySelectorAll(".tool-btn").forEach(b => b.classList.remove("active"));
         btn.classList.add("active"); currentTool = btn.dataset.tool;
       };
     });
 
+    syncPinOverlay();
     renderDayTabs();
     buildGrid();
   </script>
