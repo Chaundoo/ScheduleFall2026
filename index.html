@@ -6,307 +6,416 @@
   <title>Fall Weekly Schedule & Quota Planner</title>
   <style>
     :root {
-      --bg: #0f172a;
-      --panel: #1e293b;
-      --border: #334155;
-      --text: #f8fafc;
-      --muted: #94a3b8;
-      --class-color: #3b82f6;
-      --capstone-fixed: #6366f1;
-      --gym-color: #ef4444;
-      --quota-capstone: #8b5cf6;
-      --quota-intern: #10b981;
-      --quota-hw: #f59e0b;
-      --work-color: #06b6d4;
-      --personal-color: #ec4899;
+      --bg: #0f172a; --panel: #1e293b; --border: #334155;
+      --text: #f8fafc; --muted: #94a3b8;
+      --quota-capstone: #8b5cf6; --quota-intern: #10b981;
+      --quota-hw: #f59e0b; --work-color: #06b6d4; --personal-color: #ec4899;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 18px 12px 60px; line-height: 1.4; overflow-x: hidden; }
+    .app-container { max-width: 980px; margin: 0 auto; }
+    .header, .sync-panel, .quota-card, .toolbar, .day-tabs, .schedule-wrapper { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; }
+    .header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; padding: 14px 18px; }
+    .header h1 { font-size: 1.18rem; font-weight: 700; }
+    .header-actions, .sync-group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    button.action-btn { background: #334155; color: var(--text); border: 1px solid #475569; padding: 7px 12px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.78rem; }
+    button.action-btn:hover { background: #475569; }
+    button.action-btn.primary { background: #2563eb; border-color: #3b82f6; }
+    button.action-btn.success { background: #059669; border-color: #10b981; }
+    button.action-btn.danger:hover { background: #dc2626; border-color: #ef4444; }
+    .sync-panel { padding: 12px 16px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px; }
+    .sync-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+    .sync-label { font-size: 0.78rem; color: var(--muted); font-weight: 600; }
+    .code-input, .date-picker-input { background: #0f172a; color: var(--text); border: 1px solid var(--border); border-radius: 7px; padding: 6px 10px; font-size: 0.78rem; user-select: text; color-scheme: dark; }
+    .code-input { font-family: monospace; min-width: 200px; flex: 1; }
+    .toast-msg { font-size: 0.78rem; color: #4ade80; font-weight: 600; display: none; }
+    .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 12px; }
+    .quota-card { padding: 12px 16px; }
+    .quota-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-weight: 600; font-size: 0.88rem; }
+    .progress-track { width: 100%; height: 8px; background: #0f172a; border-radius: 999px; overflow: hidden; border: 1px solid var(--border); }
+    .progress-fill { height: 100%; width: 0%; transition: width 0.2s ease; }
+    .quota-sub { font-size: 0.75rem; color: var(--muted); margin-top: 5px; display: flex; justify-content: space-between; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 14px; margin-bottom: 12px; align-items: center; }
+    .tool-btn { display: flex; align-items: center; gap: 6px; padding: 6px 11px; border-radius: 8px; border: 2px solid transparent; background: #0f172a; color: var(--text); cursor: pointer; font-size: 0.78rem; font-weight: 600; }
+    .tool-btn.active { border-color: #f8fafc; background: #1e293b; }
+    .color-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .day-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; padding: 8px; }
+    .day-tab { flex: 1; min-width: 64px; text-align: center; padding: 6px; border-radius: 7px; border: none; background: #0f172a; color: var(--muted); font-weight: 700; font-size: 0.78rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; }
+    .day-tab span.tab-date { font-size: 0.68rem; font-weight: 500; opacity: 0.85; }
+    .day-tab.active { background: #3b82f6; color: #fff; }
+    .schedule-wrapper { overflow: visible; }
+    .schedule-grid { display: grid; width: 100%; }
+    .grid-header { background: #0f172a; padding: 8px 4px; text-align: center; font-weight: 700; font-size: 0.84rem; border-bottom: 2px solid var(--border); border-right: 1px solid var(--border); position: sticky; top: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .day-date-input { background: #1e293b; color: #38bdf8; border: 1px dashed #475569; border-radius: 5px; padding: 1px 4px; font-size: 0.71rem; font-weight: 600; text-align: center; width: 90%; max-width: 86px; user-select: text; }
+    .day-date-input:focus { outline: none; border: 1px solid #38bdf8; background: #0f172a; color: #fff; }
+    .time-label { padding: 0 6px; text-align: right; font-size: 0.7rem; color: var(--muted); border-right: 1px solid var(--border); border-bottom: 1px solid rgba(51,65,85,0.35); height: 22px; display: flex; align-items: center; justify-content: flex-end; background: #0f172a; white-space: nowrap; }
+    .time-label.hour-mark { color: var(--text); font-weight: 700; border-top: 1px solid var(--border); }
+    .slot { height: 22px; border-right: 1px solid rgba(51,65,85,0.45); border-bottom: 1px solid rgba(51,65,85,0.25); padding: 0 5px; font-size: 0.72rem; font-weight: 600; display: flex; align-items: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; cursor: pointer; }
+    .slot.hour-row { border-top: 1px solid var(--border); }
+    .slot:hover:not(.locked) { filter: brightness(1.2); }
+    .slot.locked { cursor: not-allowed; font-weight: 700; }
+    .cat-class { background: rgba(59,130,246,0.88); color: #fff; }
+    .cat-capstone-fixed { background: rgba(99,102,241,0.92); color: #fff; }
+    .cat-gym { background: rgba(239,68,68,0.9); color: #fff; }
+    .cat-capstone { background: rgba(139,92,246,0.85); color: #fff; }
+    .cat-intern { background: rgba(16,185,129,0.85); color: #fff; }
+    .cat-hw { background: rgba(245,158,11,0.88); color: #0f172a; }
+    .cat-work { background: rgba(6,182,212,0.85); color: #0f172a; }
+    .cat-personal { background: rgba(236,72,153,0.85); color: #fff; }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <div class="header">
+      <div>
+        <h1>Fall Schedule & Quota Tracker (7:00 AM – 12:00 AM)</h1>
+        <p style="font-size: 0.78rem; color: var(--muted);">Click any date under a day to edit it. Use the export buttons below to save or share your schedule.</p>
+      </div>
+      <div class="header-actions">
+        <button class="action-btn" id="restoreDefaultBtn">Restore Oct 13 Schedule</button>
+        <button class="action-btn danger" id="clearFlexBtn">Clear Flexible</button>
+      </div>
+    </div>
+
+    <div class="sync-panel">
+      <div class="sync-row">
+        <div class="sync-group">
+          <span class="sync-label">Portable Save:</span>
+          <button class="action-btn primary" id="copyHtmlBtn">Copy Full HTML (Baked-In Schedule)</button>
+          <button class="action-btn success" id="copyJsonBtn">Copy Save Code (For Chat / Backup)</button>
+          <span class="toast-msg" id="toastMsg">Copied! ✓</span>
+        </div>
+        <div class="sync-group">
+          <span class="sync-label">Auto-Fill Week From Monday:</span>
+          <input type="date" id="weekStartPicker" class="date-picker-input" value="2026-10-12" />
+        </div>
+      </div>
+      <div class="sync-row">
+        <div class="sync-group" style="width: 100%;">
+          <span class="sync-label">Load Save Code:</span>
+          <input type="text" id="importCodeInput" class="code-input" placeholder="Paste Save Code JSON here to restore schedule & dates..." />
+          <button class="action-btn" id="loadJsonBtn">Apply Save Code</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard">
+      <div class="quota-card">
+        <div class="quota-header"><span>Capstone Work Quota</span><span id="capText">0.0 / 9.0 hrs</span></div>
+        <div class="progress-track"><div class="progress-fill" id="capBar" style="background: var(--quota-capstone);"></div></div>
+        <div class="quota-sub"><span>Target: 9 hrs/wk</span><span id="capStatus">9.0 hrs remaining</span></div>
+      </div>
+      <div class="quota-card">
+        <div class="quota-header"><span>Internship Applications</span><span id="internText">0.0 / 7.0 hrs</span></div>
+        <div class="progress-track"><div class="progress-fill" id="internBar" style="background: var(--quota-intern);"></div></div>
+        <div class="quota-sub"><span>Target: 7 hrs/wk</span><span id="internStatus">7.0 hrs remaining</span></div>
+      </div>
+      <div class="quota-card">
+        <div class="quota-header"><span>Homework & Study</span><span id="hwText">0.0 / 6.0 hrs</span></div>
+        <div class="progress-track"><div class="progress-fill" id="hwBar" style="background: var(--quota-hw);"></div></div>
+        <div class="quota-sub"><span>Target: 6 hrs/wk</span><span id="hwStatus">6.0 hrs remaining</span></div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <span class="sync-label">Paint:</span>
+      <button class="tool-btn active" data-tool="capstone"><span class="color-dot" style="background: var(--quota-capstone);"></span> Capstone (9h)</button>
+      <button class="tool-btn" data-tool="intern"><span class="color-dot" style="background: var(--quota-intern);"></span> Internships (7h)</button>
+      <button class="tool-btn" data-tool="hw"><span class="color-dot" style="background: var(--quota-hw);"></span> Homework (6h)</button>
+      <button class="tool-btn" data-tool="work"><span class="color-dot" style="background: var(--work-color);"></span> Work</button>
+      <button class="tool-btn" data-tool="personal"><span class="color-dot" style="background: var(--personal-color);"></span> Personal</button>
+      <button class="tool-btn" data-tool="erase"><span class="color-dot" style="background: #64748b; border: 1px solid #fff;"></span> Eraser</button>
+    </div>
+
+    <div class="day-tabs" id="dayTabs"></div>
+    <div class="schedule-wrapper"><div class="schedule-grid" id="scheduleGrid"></div></div>
+  </div>
+
+  <script>
+    const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const START_HOUR = 7, END_HOUR = 24;
+    const STORAGE_KEY = "fall_schedule_planner_v3", DATES_STORAGE_KEY = "fall_schedule_dates_v3";
+
+    const CATEGORY_META = {
+      capstone: { label: "Capstone Work", className: "cat-capstone" },
+      intern:   { label: "Internship Apps", className: "cat-intern" },
+      hw:       { label: "Homework / Study", className: "cat-hw" },
+      work:     { label: "Work", className: "cat-work" },
+      personal: { label: "Personal", className: "cat-personal" }
+    };
+
+    const FIXED_EVENTS = [
+      { days: ["Mon", "Wed", "Fri"], start: "09:30", end: "10:30", title: "Signals & Systems", type: "cat-class" },
+      { days: ["Mon", "Wed", "Fri"], start: "10:45", end: "11:45", title: "Multi Calculus", type: "cat-class" },
+      { days: ["Mon", "Wed", "Fri"], start: "13:15", end: "14:15", title: "Machine Design", type: "cat-class" },
+      { days: ["Tue", "Thu"], start: "12:15", end: "13:45", title: "Dynamics", type: "cat-class" },
+      { days: ["Wed"], start: "14:30", end: "17:30", title: "Capstone Design", type: "cat-capstone-fixed" },
+      { days: ["Mon"], start: "19:15", end: "20:15", title: "Capstone Meeting", type: "cat-capstone-fixed" },
+      { days: ["Tue"], start: "20:00", end: "22:00", title: "Gym w/ Eric (Back/Bi)", type: "cat-gym" },
+      { days: ["Wed"], start: "20:00", end: "22:00", title: "Gym w/ Eric (Legs)", type: "cat-gym" },
+      { days: ["Sat"], start: "08:30", end: "10:30", title: "Gym w/ Eric (Push)", type: "cat-gym" }
+    ];
+
+    function timeToMinutes(t) { const [h, m] = t.split(":").map(Number); return h * 60 + m; }
+
+    function expandRanges(ranges) {
+      const map = {};
+      ranges.forEach(([day, s, e, cat]) => {
+        for (let m = timeToMinutes(s); m < timeToMinutes(e); m += 15) {
+          map[`${day}_${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`] = cat;
+        }
+      });
+      return map;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
+    /* === STATE_START === */
+    const DEFAULT_DATES = { Mon: "10/12", Tue: "10/13 (Today)", Wed: "10/14", Thu: "10/15", Fri: "10/16", Sat: "10/17", Sun: "10/18" };
+    const DEFAULT_SCHEDULE = expandRanges([
+      ["Mon", "11:45", "13:15", "hw"], ["Mon", "14:15", "19:15", "capstone"],
+      ["Wed", "11:45", "12:15", "personal"], ["Wed", "12:15", "13:15", "capstone"],
+      ["Wed", "18:00", "19:00", "intern"], ["Wed", "19:00", "20:00", "personal"],
+      ["Wed", "22:00", "23:00", "intern"], ["Wed", "23:00", "23:30", "personal"], ["Wed", "23:30", "24:00", "intern"],
+      ["Thu", "08:30", "12:15", "capstone"], ["Thu", "13:45", "14:15", "personal"],
+      ["Thu", "14:15", "15:15", "hw"], ["Thu", "15:15", "16:00", "intern"],
+      ["Thu", "16:00", "20:30", "work"], ["Thu", "20:30", "21:00", "personal"],
+      ["Thu", "21:00", "23:00", "capstone"], ["Thu", "23:00", "24:00", "intern"],
+      ["Fri", "11:45", "12:15", "personal"], ["Fri", "12:15", "13:15", "intern"],
+      ["Fri", "14:15", "17:00", "personal"], ["Fri", "17:00", "21:00", "work"], ["Fri", "21:30", "24:00", "hw"],
+      ["Sat", "10:30", "11:30", "hw"], ["Sat", "11:30", "12:30", "intern"],
+      ["Sat", "12:30", "21:30", "work"], ["Sat", "22:00", "24:00", "hw"],
+      ["Sun", "08:00", "14:00", "personal"], ["Sun", "17:00", "21:30", "work"], ["Sun", "22:00", "24:00", "hw"]
+    ]);
+    /* === STATE_END === */
+
+    let currentTool = "capstone", isMouseDown = false;
+    let savedSchedule = { ...DEFAULT_SCHEDULE }, savedDates = { ...DEFAULT_DATES };
+
+    try {
+      const s = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+      if (s && Object.keys(s).length > 0) savedSchedule = s;
+      const d = JSON.parse(localStorage.getItem(DATES_STORAGE_KEY) || "null");
+      if (d && Object.keys(d).length > 0) savedDates = d;
+    } catch (e) {}
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedSchedule));
+    localStorage.setItem(DATES_STORAGE_KEY, JSON.stringify(savedDates));
+
+    let activeDayFilter = window.innerWidth <= 680 ? (DAYS[(new Date().getDay() + 6) % 7] || "Tue") : "ALL";
+
+    function renderDayTabs() {
+      const c = document.getElementById("dayTabs");
+      c.innerHTML = "";
+      [["ALL", "Full Week", "All 7 Days"], ...DAYS.map(d => [d, d, savedDates[d] || ""])].forEach(([key, title, sub]) => {
+        const b = document.createElement("button");
+        b.className = "day-tab" + (activeDayFilter === key ? " active" : "");
+        b.innerHTML = `<span>${title}</span><span class="tab-date">${sub}</span>`;
+        b.onclick = () => { activeDayFilter = key; renderDayTabs(); buildGrid(); };
+        c.appendChild(b);
+      });
     }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
-      padding: 20px 12px 60px;
-      line-height: 1.4;
-      overflow-x: hidden;
+    function formatTime12(hour, minute) {
+      if (minute === 0) {
+        const p = (hour === 24 || hour === 0) ? "AM" : (hour >= 12 ? "PM" : "AM");
+        return `${hour % 12 === 0 ? 12 : hour % 12}:00 ${p}`;
+      }
+      if (hour === 23 && minute === 45) return "11:45 - 12 AM";
+      return `:${String(minute).padStart(2, "0")}`;
     }
 
-    .app-container {
-      max-width: 980px;
-      margin: 0 auto;
+    function getFixedEvent(day, slotMin) {
+      for (const ev of FIXED_EVENTS) {
+        if (!ev.days.includes(day)) continue;
+        const s = timeToMinutes(ev.start), e = timeToMinutes(ev.end);
+        if (slotMin >= s && slotMin < e) return { ...ev, isStart: slotMin === s };
+      }
+      return null;
     }
 
-    .header {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
-      background: var(--panel);
-      padding: 14px 18px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
+    function buildGrid() {
+      const grid = document.getElementById("scheduleGrid");
+      grid.innerHTML = "";
+      const visibleDays = activeDayFilter === "ALL" ? DAYS : [activeDayFilter];
+      grid.style.gridTemplateColumns = `82px repeat(${visibleDays.length}, minmax(0, 1fr))`;
+
+      const th = document.createElement("div");
+      th.className = "grid-header";
+      th.innerHTML = `<span>Time</span><span style="font-size:0.68rem;color:var(--muted);">Date</span>`;
+      grid.appendChild(th);
+
+      visibleDays.forEach(day => {
+        const dh = document.createElement("div");
+        dh.className = "grid-header";
+        dh.innerHTML = `<span>${day}</span>`;
+        const inp = document.createElement("input");
+        inp.type = "text"; inp.className = "day-date-input";
+        inp.value = savedDates[day] || ""; inp.placeholder = "MM/DD";
+        inp.oninput = (e) => {
+          savedDates[day] = e.target.value;
+          localStorage.setItem(DATES_STORAGE_KEY, JSON.stringify(savedDates));
+          renderDayTabs();
+        };
+        dh.appendChild(inp);
+        grid.appendChild(dh);
+      });
+
+      for (let h = START_HOUR; h < END_HOUR; h++) {
+        for (let m = 0; m < 60; m += 15) {
+          const slotMin = h * 60 + m;
+          const tKey = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+          const tc = document.createElement("div");
+          tc.className = "time-label" + (m === 0 ? " hour-mark" : "");
+          tc.textContent = formatTime12(h, m);
+          grid.appendChild(tc);
+
+          visibleDays.forEach(day => {
+            const slotId = `${day}_${tKey}`;
+            const slot = document.createElement("div");
+            slot.className = "slot" + (m === 0 ? " hour-row" : "");
+            slot.dataset.slotId = slotId;
+
+            const fixed = getFixedEvent(day, slotMin);
+            if (fixed) {
+              slot.classList.add("locked", fixed.type);
+              if (fixed.isStart) slot.textContent = fixed.title;
+            } else {
+              const cat = savedSchedule[slotId];
+              if (cat && CATEGORY_META[cat]) {
+                slot.classList.add(CATEGORY_META[cat].className);
+                slot.dataset.category = cat;
+              }
+              slot.onmousedown = (e) => { if (e.button === 0) { isMouseDown = true; applyTool(slot); } };
+              slot.onmouseenter = () => { if (isMouseDown) applyTool(slot); };
+            }
+            grid.appendChild(slot);
+          });
+        }
+      }
+      updateLabelsAndQuotas();
     }
 
-    .header h1 {
-      font-size: 1.2rem;
-      font-weight: 700;
+    function applyTool(slot) {
+      if (slot.classList.contains("locked")) return;
+      const id = slot.dataset.slotId;
+      Object.values(CATEGORY_META).forEach(m => slot.classList.remove(m.className));
+      delete slot.dataset.category;
+
+      if (currentTool === "erase") {
+        delete savedSchedule[id];
+        slot.textContent = "";
+      } else {
+        slot.classList.add(CATEGORY_META[currentTool].className);
+        slot.dataset.category = currentTool;
+        savedSchedule[id] = currentTool;
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(savedSchedule));
+      updateLabelsAndQuotas();
     }
 
-    .header-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
+    function updateLabelsAndQuotas() {
+      const visibleDays = activeDayFilter === "ALL" ? DAYS : [activeDayFilter];
+      visibleDays.forEach(day => {
+        let prev = null;
+        for (let h = START_HOUR; h < END_HOUR; h++) {
+          for (let m = 0; m < 60; m += 15) {
+            const id = `${day}_${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+            const slot = document.querySelector(`[data-slot-id="${id}"]`);
+            if (!slot || slot.classList.contains("locked")) { prev = null; continue; }
+            const cat = slot.dataset.category || null;
+            slot.textContent = (cat && cat !== prev) ? CATEGORY_META[cat].label : "";
+            prev = cat;
+          }
+        }
+      });
+
+      const counts = { capstone: 0, intern: 0, hw: 0 };
+      Object.values(savedSchedule).forEach(c => { if (counts[c] !== undefined) counts[c] += 0.25; });
+      const setCard = (hrs, target, tId, bId, sId) => {
+        document.getElementById(tId).textContent = `${hrs.toFixed(2)} / ${target.toFixed(1)} hrs`;
+        document.getElementById(bId).style.width = `${Math.min(100, (hrs / target) * 100)}%`;
+        const rem = target - hrs, el = document.getElementById(sId);
+        el.textContent = rem <= 0 ? `Quota Met! (+${Math.abs(rem).toFixed(2)}h)` : `${rem.toFixed(2)} hrs remaining`;
+        el.style.color = rem <= 0 ? "#4ade80" : "var(--muted)";
+      };
+      setCard(counts.capstone, 9, "capText", "capBar", "capStatus");
+      setCard(counts.intern, 7, "internText", "internBar", "internStatus");
+      setCard(counts.hw, 6, "hwText", "hwBar", "hwStatus");
     }
 
-    button.action-btn {
-      background: #334155;
-      color: var(--text);
-      border: 1px solid #475569;
-      padding: 7px 12px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 0.78rem;
-      transition: all 0.15s ease;
+    function showToast(msg) {
+      const t = document.getElementById("toastMsg");
+      t.textContent = msg; t.style.display = "inline";
+      setTimeout(() => t.style.display = "none", 3000);
     }
 
-    button.action-btn:hover {
-      background: #475569;
-    }
+    document.getElementById("copyJsonBtn").onclick = () => {
+      const payload = JSON.stringify({ dates: savedDates, schedule: savedSchedule });
+      navigator.clipboard.writeText(payload).then(() => {
+        document.getElementById("importCodeInput").value = payload;
+        showToast("Save Code copied! ✓");
+      });
+    };
 
-    button.action-btn.primary {
-      background: #2563eb;
-      border-color: #3b82f6;
-    }
+    document.getElementById("copyHtmlBtn").onclick = () => {
+      const startTag = "/* === STATE_" + "START === */";
+      const endTag = "/* === STATE_" + "END === */";
+      const src = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+      const sIdx = src.indexOf(startTag), eIdx = src.indexOf(endTag);
+      if (sIdx !== -1 && eIdx !== -1) {
+        const baked = `${startTag}\n    const DEFAULT_DATES = ${JSON.stringify(savedDates)};\n    const DEFAULT_SCHEDULE = ${JSON.stringify(savedSchedule)};\n    `;
+        const updatedHtml = src.slice(0, sIdx) + baked + src.slice(eIdx);
+        navigator.clipboard.writeText(updatedHtml).then(() => showToast("Full HTML copied! ✓"));
+      }
+    };
 
-    button.action-btn.primary:hover {
-      background: #1d4ed8;
-    }
+    document.getElementById("loadJsonBtn").onclick = () => {
+      try {
+        const parsed = JSON.parse(document.getElementById("importCodeInput").value.trim());
+        if (parsed.schedule) savedSchedule = parsed.schedule;
+        if (parsed.dates) savedDates = parsed.dates;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(savedSchedule));
+        localStorage.setItem(DATES_STORAGE_KEY, JSON.stringify(savedDates));
+        renderDayTabs(); buildGrid(); showToast("Schedule loaded! ✓");
+      } catch (e) { alert("Invalid Save Code JSON."); }
+    };
 
-    button.action-btn.success {
-      background: #059669;
-      border-color: #10b981;
-    }
+    document.getElementById("weekStartPicker").onchange = (e) => {
+      if (!e.target.value) return;
+      const [y, m, d] = e.target.value.split("-").map(Number);
+      const base = new Date(y, m - 1, d);
+      DAYS.forEach((day, i) => {
+        const cur = new Date(base); cur.setDate(base.getDate() + i);
+        savedDates[day] = `${cur.getMonth() + 1}/${cur.getDate()}`;
+      });
+      localStorage.setItem(DATES_STORAGE_KEY, JSON.stringify(savedDates));
+      renderDayTabs(); buildGrid(); showToast("Week dates updated! ✓");
+    };
 
-    button.action-btn.success:hover {
-      background: #047857;
-    }
+    document.getElementById("restoreDefaultBtn").onclick = () => {
+      if (confirm("Restore the schedule from your Oct 13 screenshot?")) {
+        savedSchedule = { ...DEFAULT_SCHEDULE }; savedDates = { ...DEFAULT_DATES };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(savedSchedule));
+        localStorage.setItem(DATES_STORAGE_KEY, JSON.stringify(savedDates));
+        renderDayTabs(); buildGrid(); showToast("Restored! ✓");
+      }
+    };
 
-    button.action-btn.danger:hover {
-      background: #dc2626;
-      border-color: #ef4444;
-    }
+    document.getElementById("clearFlexBtn").onclick = () => {
+      if (confirm("Clear all flexible blocks?")) {
+        savedSchedule = {}; localStorage.setItem(STORAGE_KEY, "{}"); buildGrid();
+      }
+    };
 
-    /* Save / Load & Week Date Bar */
-    .sync-panel {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 12px 16px;
-      margin-bottom: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
+    window.onmouseup = () => isMouseDown = false;
+    document.querySelectorAll(".tool-btn").forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll(".tool-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active"); currentTool = btn.dataset.tool;
+      };
+    });
 
-    .sync-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .sync-group {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .sync-label {
-      font-size: 0.78rem;
-      color: var(--muted);
-      font-weight: 600;
-    }
-
-    .code-input {
-      background: #0f172a;
-      color: var(--text);
-      border: 1px solid var(--border);
-      border-radius: 7px;
-      padding: 6px 10px;
-      font-size: 0.78rem;
-      font-family: monospace;
-      min-width: 210px;
-      flex: 1;
-      user-select: text;
-    }
-
-    .date-picker-input {
-      background: #0f172a;
-      color: var(--text);
-      border: 1px solid var(--border);
-      border-radius: 7px;
-      padding: 5px 9px;
-      font-size: 0.78rem;
-      color-scheme: dark;
-    }
-
-    .toast-msg {
-      font-size: 0.78rem;
-      color: #4ade80;
-      font-weight: 600;
-      display: none;
-    }
-
-    /* Quota Dashboard */
-    .dashboard {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-
-    .quota-card {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      padding: 12px 16px;
-      border-radius: 10px;
-    }
-
-    .quota-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 6px;
-      font-weight: 600;
-      font-size: 0.88rem;
-    }
-
-    .progress-track {
-      width: 100%;
-      height: 8px;
-      background: #0f172a;
-      border-radius: 999px;
-      overflow: hidden;
-      border: 1px solid var(--border);
-    }
-
-    .progress-fill {
-      height: 100%;
-      width: 0%;
-      transition: width 0.25s ease;
-    }
-
-    .quota-sub {
-      font-size: 0.75rem;
-      color: var(--muted);
-      margin-top: 5px;
-      display: flex;
-      justify-content: space-between;
-    }
-
-    /* Palette Toolbar */
-    .toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      background: var(--panel);
-      padding: 12px 14px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      margin-bottom: 12px;
-      align-items: center;
-    }
-
-    .toolbar-label {
-      font-size: 0.8rem;
-      color: var(--muted);
-      font-weight: 600;
-      margin-right: 4px;
-    }
-
-    .tool-btn {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 11px;
-      border-radius: 8px;
-      border: 2px solid transparent;
-      background: #0f172a;
-      color: var(--text);
-      cursor: pointer;
-      font-size: 0.78rem;
-      font-weight: 600;
-      transition: transform 0.1s, border-color 0.15s;
-    }
-
-    .tool-btn.active {
-      border-color: #f8fafc;
-      background: #1e293b;
-    }
-
-    .color-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-
-    /* Day View Selector Tabs */
-    .day-tabs {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 12px;
-      background: var(--panel);
-      padding: 8px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-    }
-
-    .day-tab {
-      flex: 1;
-      min-width: 68px;
-      text-align: center;
-      padding: 6px 6px;
-      border-radius: 7px;
-      border: 1px solid transparent;
-      background: #0f172a;
-      color: var(--muted);
-      font-weight: 700;
-      font-size: 0.78rem;
-      cursor: pointer;
-      transition: all 0.15s;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1px;
-    }
-
-    .day-tab span.tab-date {
-      font-size: 0.68rem;
-      font-weight: 500;
-      opacity: 0.85;
-    }
-
-    .day-tab.active {
-      background: #3b82f6;
-      color: #ffffff;
-    }
-
-    /* Schedule Grid Container - Single Page Scrollbar */
-    .schedule-wrapper {
-      background: var(--panel);
-      border:
+    renderDayTabs();
+    buildGrid();
+  </script>
+</body>
+</html>
