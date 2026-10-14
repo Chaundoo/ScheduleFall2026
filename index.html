@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Weekly Engineering & Quota Planner</title>
+  <title>Fall Weekly Schedule & Quota Planner</title>
   <style>
     :root {
       --bg: #0f172a;
@@ -11,820 +11,599 @@
       --border: #334155;
       --text: #f8fafc;
       --muted: #94a3b8;
-      --eng: #0284c7;
-      --capstone-class: #059669;
-      --gym-eric: #7c3aed;
-      --internship: #eab308;
-      --study: #22c55e;
-      --capstone-work: #ec4899;
-      --work: #f97316;
-      --church: #f59e0b;
-      --hobby: #6366f1;
-      --lunch: #64748b;
+      --class-color: #3b82f6;
+      --capstone-fixed: #6366f1;
+      --gym-color: #ef4444;
+      --quota-capstone: #8b5cf6;
+      --quota-intern: #10b981;
+      --quota-hw: #f59e0b;
+      --work-color: #06b6d4;
+      --personal-color: #ec4899;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
-    body { background: var(--bg); color: var(--text); padding: 16px; user-select: none; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
 
-    .app-container {
-      max-width: 1400px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: 320px 1fr;
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      padding: 20px;
+      line-height: 1.4;
+    }
+
+    .header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
       gap: 16px;
-      align-items: start;
+      margin-bottom: 20px;
+      background: var(--panel);
+      padding: 16px 20px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
     }
 
-    @media (max-width: 1024px) {
-      .app-container { grid-template-columns: 1fr; }
+    .header h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
     }
 
-    /* Sidebar */
-    .sidebar {
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    button.action-btn {
+      background: #334155;
+      color: var(--text);
+      border: 1px solid #475569;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.85rem;
+      transition: all 0.15s ease;
+    }
+
+    button.action-btn:hover {
+      background: #475569;
+    }
+
+    button.action-btn.danger:hover {
+      background: #dc2626;
+      border-color: #ef4444;
+    }
+
+    /* Quota Dashboard */
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .quota-card {
       background: var(--panel);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px;
-      position: sticky;
-      top: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
-    }
-
-    h1 { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.02em; }
-    .subtitle { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
-
-    .section-title {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--muted);
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
-
-    /* Quota Checklist Cards */
-    .quota-card {
-      background: rgba(15, 23, 42, 0.6);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 10px 12px;
-      margin-bottom: 8px;
+      padding: 14px 18px;
+      border-radius: 10px;
     }
 
     .quota-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 0.85rem;
+      margin-bottom: 8px;
       font-weight: 600;
-      margin-bottom: 6px;
+      font-size: 0.95rem;
     }
-
-    .quota-badge {
-      font-size: 0.75rem;
-      padding: 2px 6px;
-      border-radius: 4px;
-      background: #334155;
-      color: #fff;
-    }
-
-    .quota-badge.met { background: #16a34a; color: #fff; }
 
     .progress-track {
       width: 100%;
-      height: 8px;
+      height: 10px;
       background: #0f172a;
-      border-radius: 99px;
+      border-radius: 999px;
       overflow: hidden;
-      position: relative;
+      border: 1px solid var(--border);
     }
 
-    .progress-scheduled {
+    .progress-fill {
       height: 100%;
-      opacity: 0.45;
-      position: absolute;
-      left: 0;
-      top: 0;
-      transition: width 0.2s ease;
+      width: 0%;
+      transition: width 0.25s ease;
     }
 
-    .progress-done {
-      height: 100%;
-      position: absolute;
-      left: 0;
-      top: 0;
-      transition: width 0.2s ease;
-    }
-
-    .quota-subtext {
+    .quota-sub {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 6px;
       display: flex;
       justify-content: space-between;
-      font-size: 0.72rem;
+    }
+
+    /* Palette Toolbar */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      background: var(--panel);
+      padding: 14px 18px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      margin-bottom: 20px;
+      align-items: center;
+    }
+
+    .toolbar-label {
+      font-size: 0.85rem;
       color: var(--muted);
-      margin-top: 5px;
+      font-weight: 600;
+      margin-right: 6px;
     }
 
-    /* Palette Buttons */
-    .palette-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-    }
-
-    .brush-btn {
+    .tool-btn {
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 8px 10px;
-      border-radius: 6px;
+      padding: 8px 14px;
+      border-radius: 8px;
       border: 2px solid transparent;
       background: #0f172a;
       color: var(--text);
-      font-size: 0.8rem;
-      font-weight: 500;
       cursor: pointer;
-      text-align: left;
-      transition: all 0.15s;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: transform 0.1s, border-color 0.15s;
     }
 
-    .brush-btn:hover { border-color: #475569; }
-    .brush-btn.active { border-color: #fff; background: #1e293b; box-shadow: 0 0 0 2px rgba(255,255,255,0.15); }
+    .tool-btn.active {
+      border-color: #f8fafc;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
 
-    .swatch {
+    .color-dot {
       width: 12px;
       height: 12px;
-      border-radius: 3px;
-      flex-shrink: 0;
+      border-radius: 50%;
     }
 
-    .mode-switch {
-      display: flex;
-      background: #0f172a;
-      border-radius: 8px;
-      padding: 4px;
-      border: 1px solid var(--border);
-    }
-
-    .mode-btn {
-      flex: 1;
-      padding: 7px;
-      font-size: 0.78rem;
-      font-weight: 600;
-      border: none;
-      background: transparent;
-      color: var(--muted);
-      border-radius: 6px;
-      cursor: pointer;
-    }
-
-    .mode-btn.active {
-      background: #3b82f6;
-      color: #fff;
-    }
-
-    .action-btns {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .btn {
-      padding: 9px 12px;
-      border-radius: 6px;
-      border: 1px solid var(--border);
-      background: #0f172a;
-      color: var(--text);
-      font-size: 0.8rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-
-    .btn:hover { background: #334155; }
-    .btn.primary { background: #2563eb; border-color: #3b82f6; }
-    .btn.primary:hover { background: #1d4ed8; }
-    .btn.danger { color: #fca5a5; border-color: #7f1d1d; }
-    .btn.danger:hover { background: #7f1d1d; color: #fff; }
-
-    /* Calendar Grid */
-    .calendar-wrapper {
+    /* Schedule Grid Container */
+    .schedule-wrapper {
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 12px;
-      overflow: hidden;
+      overflow-x: auto;
     }
 
-    .calendar-header {
+    .schedule-grid {
       display: grid;
-      grid-template-columns: 72px repeat(7, 1fr);
+      grid-template-columns: 95px repeat(7, minmax(125px, 1fr));
+      min-width: 960px;
+    }
+
+    .grid-header {
       background: #0f172a;
-      border-bottom: 1px solid var(--border);
+      padding: 12px 8px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+      border-bottom: 2px solid var(--border);
+      border-right: 1px solid var(--border);
       position: sticky;
       top: 0;
       z-index: 10;
     }
 
-    .day-header {
-      padding: 10px 6px;
-      text-align: center;
-      font-weight: 700;
-      font-size: 0.85rem;
-      border-left: 1px solid var(--border);
-    }
-
-    .day-hours {
-      display: block;
-      font-size: 0.7rem;
-      font-weight: 400;
-      color: var(--muted);
-      margin-top: 2px;
-    }
-
-    .calendar-body {
-      display: grid;
-      grid-template-columns: 72px repeat(7, 1fr);
-      max-height: 84vh;
-      overflow-y: auto;
-    }
-
-    .time-col {
-      background: #0f172a;
-    }
-
-    .time-slot-label {
-      height: 18px;
-      font-size: 0.68rem;
-      color: var(--muted);
+    .time-label {
+      padding: 2px 8px;
       text-align: right;
-      padding-right: 8px;
+      font-size: 0.72rem;
+      color: var(--muted);
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+      height: 24px;
       display: flex;
       align-items: center;
       justify-content: flex-end;
-      border-bottom: 1px solid rgba(51, 65, 85, 0.25);
+      background: #0f172a;
     }
 
-    .time-slot-label.hour-mark {
-      color: #cbd5e1;
+    .time-label.hour-mark {
+      color: var(--text);
+      font-weight: 700;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .slot {
+      height: 24px;
+      border-right: 1px solid rgba(51, 65, 85, 0.5);
+      border-bottom: 1px solid rgba(51, 65, 85, 0.28);
+      padding: 0 6px;
+      font-size: 0.72rem;
       font-weight: 600;
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      cursor: crosshair;
+      transition: background 0.08s;
+    }
+
+    .slot.hour-row {
       border-top: 1px solid var(--border);
     }
 
-    .day-col {
-      border-left: 1px solid var(--border);
-      position: relative;
+    .slot:hover:not(.locked) {
+      filter: brightness(1.2);
     }
 
-    .cell {
-      height: 18px;
-      border-bottom: 1px solid rgba(51, 65, 85, 0.22);
-      font-size: 0.7rem;
-      padding: 0 5px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      cursor: pointer;
-      position: relative;
-      overflow: hidden;
-      white-space: nowrap;
-    }
-
-    .cell.hour-start {
-      border-top: 1px solid rgba(148, 163, 184, 0.25);
-    }
-
-    .cell:hover {
-      filter: brightness(1.18);
-    }
-
-    .cell-title {
-      font-weight: 600;
-      font-size: 0.7rem;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .cell.locked {
+    .slot.locked {
       cursor: not-allowed;
-      background-image: repeating-linear-gradient(
-        45deg,
-        rgba(0, 0, 0, 0.12),
-        rgba(0, 0, 0, 0.12) 6px,
-        transparent 6px,
-        transparent 12px
-      );
-    }
-
-    .cell.completed {
-      opacity: 0.55;
-    }
-
-    .cell.completed .cell-title {
-      text-decoration: line-through;
-    }
-
-    .check-indicator {
-      font-size: 0.68rem;
       font-weight: 700;
     }
+
+    /* Block Category Styles */
+    .cat-class { background: rgba(59, 130, 246, 0.85); color: #fff; }
+    .cat-capstone-fixed { background: rgba(99, 102, 241, 0.9); color: #fff; }
+    .cat-gym { background: rgba(239, 68, 68, 0.88); color: #fff; }
+    .cat-capstone { background: rgba(139, 92, 246, 0.82); color: #fff; }
+    .cat-intern { background: rgba(16, 185, 129, 0.82); color: #fff; }
+    .cat-hw { background: rgba(245, 158, 11, 0.85); color: #0f172a; }
+    .cat-work { background: rgba(6, 182, 212, 0.82); color: #0f172a; }
+    .cat-personal { background: rgba(236, 72, 153, 0.82); color: #fff; }
   </style>
 </head>
 <body>
 
-<div class="app-container">
-  <!-- LEFT CONTROL PANEL -->
-  <div class="sidebar">
+  <div class="header">
     <div>
-      <h1>Fall Weekly Quota Planner</h1>
-      <p class="subtitle">15-min precision • Fixed classes & Eric Gym locked</p>
+      <h1>Fall Engineering Schedule & Quota Tracker (7:00 AM – 12:00 AM)</h1>
+      <p style="font-size: 0.82rem; color: var(--muted); margin-top: 2px;">
+        Click and drag across open 15-minute slots to schedule flexible blocks. Fixed courses and gym sessions are locked.
+      </p>
     </div>
+    <div class="header-actions">
+      <button class="action-btn danger" id="clearFlexBtn">Reset Flexible Blocks</button>
+    </div>
+  </div>
 
-    <!-- Mode Switcher -->
-    <div>
-      <div class="section-title">1. Interaction Mode</div>
-      <div class="mode-switch">
-        <button class="mode-btn active" id="modePaint" onclick="setMode('paint')">🖌️ Schedule / Paint</button>
-        <button class="mode-btn" id="modeCheck" onclick="setMode('check')">✅ Check Off Done</button>
+  <!-- Quota Dashboard -->
+  <div class="dashboard">
+    <div class="quota-card">
+      <div class="quota-header">
+        <span>Capstone Work Quota</span>
+        <span id="capText">0.0 / 9.0 hrs</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="capBar" style="background: var(--quota-capstone);"></div>
+      </div>
+      <div class="quota-sub">
+        <span>Target: 9 hrs/wk</span>
+        <span id="capStatus">9.0 hrs remaining</span>
       </div>
     </div>
 
-    <!-- Weekly Checklist Quotas -->
-    <div>
-      <div class="section-title">2. Weekly Checklist Requirements</div>
-
-      <!-- Internship Quota -->
-      <div class="quota-card">
-        <div class="quota-header">
-          <span>💼 Internship Applying</span>
-          <span class="quota-badge" id="badge-internship">0 / 7.0h</span>
-        </div>
-        <div class="progress-track">
-          <div class="progress-scheduled" id="sched-internship" style="background: var(--internship); width: 0%"></div>
-          <div class="progress-done" id="done-internship" style="background: var(--internship); width: 0%"></div>
-        </div>
-        <div class="quota-subtext">
-          <span id="sub-sched-internship">Scheduled: 0.0h</span>
-          <span id="sub-done-internship">Completed: 0.0h</span>
-        </div>
+    <div class="quota-card">
+      <div class="quota-header">
+        <span>Internship Applications</span>
+        <span id="internText">0.0 / 7.0 hrs</span>
       </div>
-
-      <!-- HW/Study Quota -->
-      <div class="quota-card">
-        <div class="quota-header">
-          <span>📚 HW / Study</span>
-          <span class="quota-badge" id="badge-study">0 / 6.0h</span>
-        </div>
-        <div class="progress-track">
-          <div class="progress-scheduled" id="sched-study" style="background: var(--study); width: 0%"></div>
-          <div class="progress-done" id="done-study" style="background: var(--study); width: 0%"></div>
-        </div>
-        <div class="quota-subtext">
-          <span id="sub-sched-study">Scheduled: 0.0h</span>
-          <span id="sub-done-study">Completed: 0.0h</span>
-        </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="internBar" style="background: var(--quota-intern);"></div>
       </div>
-
-      <!-- Capstone Work Quota -->
-      <div class="quota-card">
-        <div class="quota-header">
-          <span>✈️ Capstone Work</span>
-          <span class="quota-badge" id="badge-capstone-work">0 / 9.0h</span>
-        </div>
-        <div class="progress-track">
-          <div class="progress-scheduled" id="sched-capstone-work" style="background: var(--capstone-work); width: 0%"></div>
-          <div class="progress-done" id="done-capstone-work" style="background: var(--capstone-work); width: 0%"></div>
-        </div>
-        <div class="quota-subtext">
-          <span id="sub-sched-capstone-work">Scheduled: 0.0h</span>
-          <span id="sub-done-capstone-work">Completed: 0.0h</span>
-        </div>
+      <div class="quota-sub">
+        <span>Target: 7 hrs/wk</span>
+        <span id="internStatus">7.0 hrs remaining</span>
       </div>
     </div>
 
-    <!-- Brush Palette -->
-    <div>
-      <div class="section-title">3. Block Painter (Click & Drag)</div>
-      <div class="palette-grid" id="paletteGrid"></div>
-    </div>
-
-    <!-- Quick Actions -->
-    <div>
-      <div class="section-title">4. Weekly Automation</div>
-      <div class="action-btns">
-        <button class="btn primary" onclick="autoFillQuotas()">⚡ Auto-Fill Remaining Quotas</button>
-        <button class="btn" onclick="clearCompletedMarks()">↺ Uncheck All "Done" Marks</button>
-        <button class="btn danger" onclick="resetToBaseWeek()">🗑️ New Week (Keep Locked Only)</button>
+    <div class="quota-card">
+      <div class="quota-header">
+        <span>Homework & Study</span>
+        <span id="hwText">0.0 / 6.0 hrs</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="hwBar" style="background: var(--quota-hw);"></div>
+      </div>
+      <div class="quota-sub">
+        <span>Target: 6 hrs/wk</span>
+        <span id="hwStatus">6.0 hrs remaining</span>
       </div>
     </div>
   </div>
 
-  <!-- RIGHT CALENDAR GRID -->
-  <div class="calendar-wrapper">
-    <div class="calendar-header" id="calHeader">
-      <div class="day-header" style="border-left:none;">Time</div>
-    </div>
-    <div class="calendar-body" id="calBody"></div>
+  <!-- Category Painting Toolbar -->
+  <div class="toolbar">
+    <span class="toolbar-label">Paint Tool:</span>
+    <button class="tool-btn active" data-tool="capstone">
+      <span class="color-dot" style="background: var(--quota-capstone);"></span> Capstone Work (9h Quota)
+    </button>
+    <button class="tool-btn" data-tool="intern">
+      <span class="color-dot" style="background: var(--quota-intern);"></span> Internship Apps (7h Quota)
+    </button>
+    <button class="tool-btn" data-tool="hw">
+      <span class="color-dot" style="background: var(--quota-hw);"></span> Homework / Study (6h Quota)
+    </button>
+    <button class="tool-btn" data-tool="work">
+      <span class="color-dot" style="background: var(--work-color);"></span> Work Shift
+    </button>
+    <button class="tool-btn" data-tool="personal">
+      <span class="color-dot" style="background: var(--personal-color);"></span> Personal / Other
+    </button>
+    <button class="tool-btn" data-tool="erase">
+      <span class="color-dot" style="background: #64748b; border: 1px solid #fff;"></span> Eraser
+    </button>
   </div>
-</div>
 
-<script>
-  const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-  // 7:00 AM (7*4 = 28) to 11:00 PM (23*4 = 92) -> 64 slots of 15 mins per day
-  const START_SLOT = 28; // 7:00 AM
-  const END_SLOT = 92;   // 11:00 PM
-  const TOTAL_SLOTS = END_SLOT - START_SLOT;
-  const STORAGE_KEY = 'ryan_fall_schedule_v2';
+  <!-- Main Schedule Grid -->
+  <div class="schedule-wrapper">
+    <div class="schedule-grid" id="scheduleGrid"></div>
+  </div>
 
-  const CATEGORIES = {
-    'work':          { label: 'Work Shift',         color: '#ea580c', textColor: '#fff' },
-    'church':        { label: 'Church / Chapel',    color: '#d97706', textColor: '#fff' },
-    'internship':    { label: 'Internship Apply',   color: '#eab308', textColor: '#0f172a', quota: 7 },
-    'study':         { label: 'HW / Study',         color: '#16a34a', textColor: '#fff',    quota: 6 },
-    'capstone-work': { label: 'Capstone Work',      color: '#db2777', textColor: '#fff',    quota: 9 },
-    'hobby':         { label: 'Hobby / Lures / PC', color: '#6366f1', textColor: '#fff' },
-    'lunch':         { label: 'Lunch / Commute',    color: '#475569', textColor: '#f8fafc' },
-    'eraser':        { label: 'Eraser (Clear)',     color: '#1e293b', textColor: '#94a3b8' },
-    // Fixed categories
-    'eng':           { label: 'Engineering Class',  color: '#0284c7', textColor: '#fff', locked: true },
-    'capstone-fixed':{ label: 'Capstones (Locked)', color: '#059669', textColor: '#fff', locked: true },
-    'gym-eric':      { label: 'Gym w/ Eric',        color: '#7c3aed', textColor: '#fff', locked: true }
-  };
+  <script>
+    const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const START_HOUR = 7;  // 7:00 AM
+    const END_HOUR = 24;   // 12:00 AM (Midnight)
+    const STORAGE_KEY = "fall_schedule_planner_v2";
 
-  let currentBrush = 'work';
-  let currentMode = 'paint'; // 'paint' or 'check'
-  let isMouseDown = false;
-  let scheduleData = {};
-
-  function timeToSlot(hour24, minute) {
-    return (hour24 * 4) + Math.floor(minute / 15) - START_SLOT;
-  }
-
-  function formatSlotTime(slotIndex) {
-    const totalMins = (slotIndex + START_SLOT) * 15;
-    let h = Math.floor(totalMins / 60);
-    const m = totalMins % 60;
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    h = h % 12 || 12;
-    return `${h}:${m.toString().padStart(2, '0')} ${ampm}`;
-  }
-
-  function buildBaseSchedule() {
-    const data = {};
-    for (let d = 0; d < 7; d++) {
-      data[d] = {};
-      for (let s = 0; s < TOTAL_SLOTS; s++) {
-        data[d][s] = null;
-      }
-    }
-
-    function addFixed(dayIdx, startH, startM, endH, endM, cat, customTitle) {
-      const sStart = timeToSlot(startH, startM);
-      const sEnd = timeToSlot(endH, endM);
-      for (let s = sStart; s < sEnd; s++) {
-        data[dayIdx][s] = {
-          cat,
-          title: customTitle,
-          locked: true,
-          done: false
-        };
-      }
-    }
-
-    // MWF Engineering Classes (Mon=0, Wed=2, Fri=4)
-    [0, 2, 4].forEach(d => {
-      addFixed(d, 9, 30, 10, 30, 'eng', 'Signals & Systems');
-      addFixed(d, 10, 45, 11, 45, 'eng', 'Multi');
-      addFixed(d, 13, 15, 14, 15, 'eng', 'Machine Design');
-    });
-
-    // Tue/Thu Dynamics (Tue=1, Thu=3)
-    addFixed(1, 12, 15, 13, 45, 'eng', 'Dynamics');
-    addFixed(3, 12, 15, 13, 45, 'eng', 'Dynamics (Remote)');
-
-    // Capstones (Wed 2:30-5:30pm & Mon Meeting 7:15-8:15pm)
-    addFixed(2, 14, 30, 17, 30, 'capstone-fixed', 'Capstones Class');
-    addFixed(0, 19, 15, 20, 15, 'capstone-fixed', 'Capstone Meeting');
-
-    // Gym Time with Eric (Tue 8-10pm, Wed 8-10pm, Sat 8:30-10:30am)
-    addFixed(1, 20, 0, 22, 0, 'gym-eric', 'Gym w/ Eric');
-    addFixed(2, 20, 0, 22, 0, 'gym-eric', 'Gym w/ Eric');
-    addFixed(5, 8, 30, 10, 30, 'gym-eric', 'Gym w/ Eric');
-
-    return data;
-  }
-
-  function loadSchedule() {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        scheduleData = JSON.parse(saved);
-        return;
-      } catch (e) {}
-    }
-    scheduleData = buildBaseSchedule();
-  }
-
-  function saveSchedule() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(scheduleData));
-  }
-
-  function initPalette() {
-    const grid = document.getElementById('paletteGrid');
-    grid.innerHTML = '';
-    const paintableKeys = ['work', 'church', 'internship', 'study', 'capstone-work', 'hobby', 'lunch', 'eraser'];
-    paintableKeys.forEach(key => {
-      const item = CATEGORIES[key];
-      const btn = document.createElement('button');
-      btn.className = `brush-btn ${currentBrush === key ? 'active' : ''}`;
-      btn.onclick = () => {
-        currentBrush = key;
-        setMode('paint');
-        initPalette();
-      };
-      btn.innerHTML = `<span class="swatch" style="background:${item.color}"></span><span>${item.label}</span>`;
-      grid.appendChild(btn);
-    });
-  }
-
-  function setMode(mode) {
-    currentMode = mode;
-    document.getElementById('modePaint').classList.toggle('active', mode === 'paint');
-    document.getElementById('modeCheck').classList.toggle('active', mode === 'check');
-  }
-
-  function renderCalendar() {
-    const header = document.getElementById('calHeader');
-    header.innerHTML = `<div class="day-header" style="border-left:none;">Time</div>`;
-    DAYS.forEach((day, dIdx) => {
-      header.innerHTML += `
-        <div class="day-header">
-          ${day}
-          <span class="day-hours" id="day-summary-${dIdx}"></span>
-        </div>`;
-    });
-
-    const body = document.getElementById('calBody');
-    body.innerHTML = '';
-
-    // Time labels column
-    const timeCol = document.createElement('div');
-    timeCol.className = 'time-col';
-    for (let s = 0; s < TOTAL_SLOTS; s++) {
-      const isHour = (s + START_SLOT) % 4 === 0;
-      const div = document.createElement('div');
-      div.className = `time-slot-label ${isHour ? 'hour-mark' : ''}`;
-      div.textContent = isHour ? formatSlotTime(s) : '';
-      timeCol.appendChild(div);
-    }
-    body.appendChild(timeCol);
-
-    // 7 Day Columns
-    for (let d = 0; d < 7; d++) {
-      const dayCol = document.createElement('div');
-      dayCol.className = 'day-col';
-      for (let s = 0; s < TOTAL_SLOTS; s++) {
-        const isHour = (s + START_SLOT) % 4 === 0;
-        const cell = document.createElement('div');
-        cell.className = `cell ${isHour ? 'hour-start' : ''}`;
-        cell.dataset.day = d;
-        cell.dataset.slot = s;
-
-        cell.addEventListener('mousedown', (e) => {
-          e.preventDefault();
-          isMouseDown = true;
-          handleCellAction(d, s);
-        });
-        cell.addEventListener('mouseenter', () => {
-          if (isMouseDown && currentMode === 'paint') {
-            handleCellAction(d, s);
-          }
-        });
-
-        dayCol.appendChild(cell);
-      }
-      body.appendChild(dayCol);
-    }
-
-    updateAllCellsUI();
-  }
-
-  function handleCellAction(d, s) {
-    const existing = scheduleData[d][s];
-
-    if (currentMode === 'check') {
-      if (!existing) return;
-      const targetState = !existing.done;
-      const cat = existing.cat;
-      let up = s;
-      while (up >= 0 && scheduleData[d][up] && scheduleData[d][up].cat === cat) {
-        scheduleData[d][up].done = targetState;
-        up--;
-      }
-      let down = s + 1;
-      while (down < TOTAL_SLOTS && scheduleData[d][down] && scheduleData[d][down].cat === cat) {
-        scheduleData[d][down].done = targetState;
-        down++;
-      }
-      saveSchedule();
-      updateAllCellsUI();
-      return;
-    }
-
-    // Paint mode
-    if (existing && existing.locked) return;
-
-    if (currentBrush === 'eraser') {
-      scheduleData[d][s] = null;
-    } else {
-      const catObj = CATEGORIES[currentBrush];
-      scheduleData[d][s] = {
-        cat: currentBrush,
-        title: catObj.label,
-        locked: false,
-        done: false
-      };
-    }
-    saveSchedule();
-    updateAllCellsUI();
-  }
-
-  function updateAllCellsUI() {
-    const quotas = {
-      'internship':    { sched: 0, done: 0, target: 7 },
-      'study':         { sched: 0, done: 0, target: 6 },
-      'capstone-work': { sched: 0, done: 0, target: 9 }
+    const CATEGORY_META = {
+      capstone: { label: "Capstone Work", className: "cat-capstone" },
+      intern:   { label: "Internship Apps", className: "cat-intern" },
+      hw:       { label: "Homework / Study", className: "cat-hw" },
+      work:     { label: "Work", className: "cat-work" },
+      personal: { label: "Personal", className: "cat-personal" }
     };
 
-    for (let d = 0; d < 7; d++) {
-      let workHrs = 0;
-      for (let s = 0; s < TOTAL_SLOTS; s++) {
-        const cellEl = document.querySelector(`.cell[data-day="${d}"][data-slot="${s}"]`);
-        const slotData = scheduleData[d][s];
-        const prevData = s > 0 ? scheduleData[d][s - 1] : null;
+    // Anchored Classes, Capstone Meetings, & Gym Sessions
+    // Times in 24-hour decimal or "HH:MM"
+    const FIXED_EVENTS = [
+      // Signals & Systems (Mon, Wed, Fri 9:30 - 10:30)
+      { days: ["Mon", "Wed", "Fri"], start: "09:30", end: "10:30", title: "Signals & Systems", type: "cat-class" },
+      // Multivariable Calculus (Mon, Wed, Fri 10:45 - 11:45)
+      { days: ["Mon", "Wed", "Fri"], start: "10:45", end: "11:45", title: "Multi Calculus", type: "cat-class" },
+      // Machine Design (Mon, Wed, Fri 13:15 - 14:15)
+      { days: ["Mon", "Wed", "Fri"], start: "13:15", end: "14:15", title: "Machine Design", type: "cat-class" },
+      // Dynamics (Tue, Thu 12:15 - 13:45)
+      { days: ["Tue", "Thu"], start: "12:15", end: "13:45", title: "Dynamics", type: "cat-class" },
+      // Capstone Design Class (Wed 14:30 - 17:30)
+      { days: ["Wed"], start: "14:30", end: "17:30", title: "Capstone Design", type: "cat-capstone-fixed" },
+      // Capstone Monday Meeting (Mon 19:15 - 20:15)
+      { days: ["Mon"], start: "19:15", end: "20:15", title: "Capstone Meeting", type: "cat-capstone-fixed" },
+      // Gym with Eric (Tue, Wed 20:00 - 22:00; Sat 08:30 - 10:30)
+      { days: ["Tue"], start: "20:00", end: "22:00", title: "Gym w/ Eric (Back/Bi)", type: "cat-gym" },
+      { days: ["Wed"], start: "20:00", end: "22:00", title: "Gym w/ Eric (Legs)", type: "cat-gym" },
+      { days: ["Sat"], start: "08:30", end: "10:30", title: "Gym w/ Eric (Push)", type: "cat-gym" }
+    ];
 
-        cellEl.className = `cell ${((s + START_SLOT) % 4 === 0) ? 'hour-start' : ''}`;
-        cellEl.style.background = '';
-        cellEl.style.color = '';
-        cellEl.innerHTML = '';
+    let currentTool = "capstone";
+    let isMouseDown = false;
+    let savedSchedule = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
 
-        if (slotData) {
-          const catInfo = CATEGORIES[slotData.cat];
-          cellEl.style.background = catInfo.color;
-          cellEl.style.color = catInfo.textColor;
-
-          if (slotData.locked) cellEl.classList.add('locked');
-          if (slotData.done) cellEl.classList.add('completed');
-
-          if (quotas[slotData.cat]) {
-            quotas[slotData.cat].sched += 0.25;
-            if (slotData.done) quotas[slotData.cat].done += 0.25;
-          }
-          if (slotData.cat === 'work') workHrs += 0.25;
-
-          const isBlockStart = !prevData || prevData.cat !== slotData.cat || prevData.title !== slotData.title;
-          if (isBlockStart) {
-            let len = 1;
-            while (
-              s + len < TOTAL_SLOTS &&
-              scheduleData[d][s + len] &&
-              scheduleData[d][s + len].cat === slotData.cat &&
-              scheduleData[d][s + len].title === slotData.title
-            ) {
-              len++;
-            }
-            const hrsText = (len * 0.25) % 1 === 0 ? `${len * 0.25}h` : `${(len * 0.25).toFixed(2)}h`;
-            cellEl.innerHTML = `
-              <span class="cell-title">${slotData.title} (${hrsText})</span>
-              <span class="check-indicator">${slotData.done ? '✓' : (slotData.locked ? '🔒' : '')}</span>
-            `;
-          }
-        }
-      }
-      const summaryEl = document.getElementById(`day-summary-${d}`);
-      if (summaryEl) {
-        summaryEl.textContent = workHrs > 0 ? `Work: ${workHrs}h` : 'Free shifts';
-      }
+    function timeToMinutes(timeStr) {
+      const [h, m] = timeStr.split(":").map(Number);
+      return h * 60 + m;
     }
 
-    // Update Quota Progress Bars
-    Object.keys(quotas).forEach(k => {
-      const q = quotas[k];
-      const badge = document.getElementById(`badge-${k}`);
-      const schedBar = document.getElementById(`sched-${k}`);
-      const doneBar = document.getElementById(`done-${k}`);
-      const subSched = document.getElementById(`sub-sched-${k}`);
-      const subDone = document.getElementById(`sub-done-${k}`);
+    function formatTime12(hour, minute) {
+      const nextTotalMin = hour * 60 + minute + 15;
+      const endH = Math.floor(nextTotalMin / 60);
+      const endM = nextTotalMin % 60;
 
-      const schedPct = Math.min(100, (q.sched / q.target) * 100);
-      const donePct = Math.min(100, (q.done / q.target) * 100);
-
-      badge.textContent = `${q.sched.toFixed(1)} / ${q.target}.0h`;
-      badge.classList.toggle('met', q.sched >= q.target);
-
-      schedBar.style.width = `${schedPct}%`;
-      doneBar.style.width = `${donePct}%`;
-
-      subSched.textContent = `Scheduled: ${q.sched.toFixed(2)}h`;
-      subDone.textContent = `Completed: ${q.done.toFixed(2)}h`;
-    });
-  }
-
-  function autoFillQuotas() {
-    const neededSlots = {
-      'internship': 7 * 4,
-      'study': 6 * 4,
-      'capstone-work': 9 * 4
-    };
-
-    for (let d = 0; d < 7; d++) {
-      for (let s = 0; s < TOTAL_SLOTS; s++) {
-        const cell = scheduleData[d][s];
-        if (cell && neededSlots[cell.cat] !== undefined) {
-          neededSlots[cell.cat] = Math.max(0, neededSlots[cell.cat] - 1);
-        }
-      }
-    }
-
-    // 1. MWF 12:15pm-1:15pm (1 hr gap right after lunch) -> Internship Applying
-    [0, 2, 4].forEach(d => {
-      fillWindowIfEmpty(d, timeToSlot(12, 15), timeToSlot(13, 15), 'internship', neededSlots);
-    });
-
-    // 2. Scan Monday through Saturday between 9:00 AM and 8:00 PM for 1-to-2 hour open pockets
-    const windowStart = timeToSlot(9, 0);
-    const windowEnd = timeToSlot(20, 0);
-
-    const order = ['internship', 'capstone-work', 'study'];
-    for (const cat of order) {
-      for (let d = 0; d < 6; d++) {
-        let s = windowStart;
-        while (s < windowEnd && neededSlots[cat] > 0) {
-          let freeRun = 0;
-          while (s + freeRun < windowEnd && !scheduleData[d][s + freeRun]) {
-            freeRun++;
-          }
-          if (freeRun >= 4) {
-            const take = Math.min(freeRun, 8, neededSlots[cat]);
-            for (let i = 0; i < take; i++) {
-              scheduleData[d][s + i] = {
-                cat,
-                title: CATEGORIES[cat].label,
-                locked: false,
-                done: false
-              };
-            }
-            neededSlots[cat] -= take;
-            s += take + 2;
-          } else {
-            s++;
-          }
-        }
-      }
-    }
-
-    saveSchedule();
-    updateAllCellsUI();
-  }
-
-  function fillWindowIfEmpty(d, sStart, sEnd, cat, neededSlots) {
-    if (neededSlots[cat] <= 0) return;
-    for (let s = sStart; s < sEnd; s++) {
-      if (scheduleData[d][s]) return;
-    }
-    for (let s = sStart; s < sEnd && neededSlots[cat] > 0; s++) {
-      scheduleData[d][s] = {
-        cat,
-        title: CATEGORIES[cat].label,
-        locked: false,
-        done: false
+      const fmt = (h, m) => {
+        const period = (h === 24 || h === 0) ? "AM" : (h >= 12 ? "PM" : "AM");
+        const h12 = h % 12 === 0 ? 12 : h % 12;
+        return `${h12}:${String(m).padStart(2, "0")} ${period}`;
       };
-      neededSlots[cat]--;
-    }
-  }
 
-  function clearCompletedMarks() {
-    for (let d = 0; d < 7; d++) {
-      for (let s = 0; s < TOTAL_SLOTS; s++) {
-        if (scheduleData[d][s]) scheduleData[d][s].done = false;
+      // Display clean label at the top of each hour and every 15m
+      if (minute === 0) {
+        return fmt(hour, minute);
       }
+      // Show Midnight on the final 11:45 PM - 12:00 AM slot
+      if (endH === 24 && endM === 0) {
+        return "11:45 PM - 12 AM";
+      }
+      return `:${String(minute).padStart(2, "0")}`;
     }
-    saveSchedule();
-    updateAllCellsUI();
-  }
 
-  function resetToBaseWeek() {
-    if (!confirm('Reset for a new week? Your Engineering classes and Gym times with Eric will stay locked, and all flexible blocks will be cleared.')) return;
-    scheduleData = buildBaseSchedule();
-    saveSchedule();
-    updateAllCellsUI();
-  }
+    function getFixedEventForSlot(day, slotMinutes) {
+      for (const ev of FIXED_EVENTS) {
+        if (!ev.days.includes(day)) continue;
+        const startMin = timeToMinutes(ev.start);
+        const endMin = timeToMinutes(ev.end);
+        if (slotMinutes >= startMin && slotMinutes < endMin) {
+          return {
+            ...ev,
+            isStart: slotMinutes === startMin
+          };
+        }
+      }
+      return null;
+    }
 
-  window.addEventListener('mouseup', () => { isMouseDown = false; });
+    function buildGrid() {
+      const grid = document.getElementById("scheduleGrid");
+      grid.innerHTML = "";
 
-  loadSchedule();
-  initPalette();
-  renderCalendar();
-</script>
+      // Header Row
+      const timeHeader = document.createElement("div");
+      timeHeader.className = "grid-header";
+      timeHeader.textContent = "Time";
+      grid.appendChild(timeHeader);
+
+      DAYS.forEach(day => {
+        const dHeader = document.createElement("div");
+        dHeader.className = "grid-header";
+        dHeader.textContent = day;
+        grid.appendChild(dHeader);
+      });
+
+      // Generate 15-minute intervals from 7:00 AM (7) to Midnight (24)
+      for (let hour = START_HOUR; hour < END_HOUR; hour++) {
+        for (let min = 0; min < 60; min += 15) {
+          const slotMinutes = hour * 60 + min;
+          const timeKey = `${String(hour).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
+
+          // Left Time Column
+          const timeCell = document.createElement("div");
+          timeCell.className = "time-label" + (min === 0 ? " hour-mark" : "");
+          timeCell.textContent = formatTime12(hour, min);
+          grid.appendChild(timeCell);
+
+          // 7 Day Columns
+          DAYS.forEach(day => {
+            const slotId = `${day}_${timeKey}`;
+            const slot = document.createElement("div");
+            slot.className = "slot" + (min === 0 ? " hour-row" : "");
+            slot.dataset.slotId = slotId;
+
+            const fixed = getFixedEventForSlot(day, slotMinutes);
+            if (fixed) {
+              slot.classList.add("locked", fixed.type);
+              if (fixed.isStart) {
+                slot.textContent = fixed.title;
+              }
+            } else {
+              // Apply saved user category if present
+              const savedCat = savedSchedule[slotId];
+              if (savedCat && CATEGORY_META[savedCat]) {
+                slot.classList.add(CATEGORY_META[savedCat].className);
+                slot.dataset.category = savedCat;
+              }
+
+              slot.addEventListener("mousedown", (e) => {
+                e.preventDefault();
+                isMouseDown = true;
+                applyToolToSlot(slot);
+              });
+
+              slot.addEventListener("mouseenter", () => {
+                if (isMouseDown) {
+                  applyToolToSlot(slot);
+                }
+              });
+            }
+
+            grid.appendChild(slot);
+          });
+        }
+      }
+
+      updateSlotLabels();
+      updateQuotas();
+    }
+
+    function applyToolToSlot(slot) {
+      if (slot.classList.contains("locked")) return;
+      const slotId = slot.dataset.slotId;
+
+      // Remove existing category classes
+      Object.values(CATEGORY_META).forEach(meta => slot.classList.remove(meta.className));
+      delete slot.dataset.category;
+
+      if (currentTool === "erase") {
+        delete savedSchedule[slotId];
+        slot.textContent = "";
+      } else {
+        const meta = CATEGORY_META[currentTool];
+        slot.classList.add(meta.className);
+        slot.dataset.category = currentTool;
+        savedSchedule[slotId] = currentTool;
+      }
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(savedSchedule));
+      updateSlotLabels();
+      updateQuotas();
+    }
+
+    // Show category title on the first contiguous block of a painted section
+    function updateSlotLabels() {
+      DAYS.forEach(day => {
+        let prevCat = null;
+        for (let hour = START_HOUR; hour < END_HOUR; hour++) {
+          for (let min = 0; min < 60; min += 15) {
+            const timeKey = `${String(hour).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
+            const slotId = `${day}_${timeKey}`;
+            const slot = document.querySelector(`[data-slot-id="${slotId}"]`);
+            if (!slot || slot.classList.contains("locked")) {
+              prevCat = null;
+              continue;
+            }
+            const cat = slot.dataset.category || null;
+            if (cat && cat !== prevCat) {
+              slot.textContent = CATEGORY_META[cat].label;
+            } else if (cat && cat === prevCat) {
+              slot.textContent = "";
+            } else {
+              slot.textContent = "";
+            }
+            prevCat = cat;
+          }
+        }
+      });
+    }
+
+    function updateQuotas() {
+      let counts = { capstone: 0, intern: 0, hw: 0 };
+      Object.values(savedSchedule).forEach(cat => {
+        if (counts[cat] !== undefined) {
+          counts[cat] += 0.25; // Each 15-min block = 0.25 hours
+        }
+      });
+
+      const updateCard = (hours, target, textId, barId, statusId) => {
+        const pct = Math.min(100, (hours / target) * 100);
+        document.getElementById(textId).textContent = `${hours.toFixed(2)} / ${target.toFixed(1)} hrs`;
+        document.getElementById(barId).style.width = `${pct}%`;
+        const rem = target - hours;
+        const statusEl = document.getElementById(statusId);
+        if (rem <= 0) {
+          statusEl.textContent = "Quota Met! ✓";
+          statusEl.style.color = "#4ade80";
+        } else {
+          statusEl.textContent = `${rem.toFixed(2)} hrs remaining`;
+          statusEl.style.color = "var(--muted)";
+        }
+      };
+
+      updateCard(counts.capstone, 9, "capText", "capBar", "capStatus");
+      updateCard(counts.intern, 7, "internText", "internBar", "internStatus");
+      updateCard(counts.hw, 6, "hwText", "hwBar", "hwStatus");
+    }
+
+    // Global Mouse Up
+    window.addEventListener("mouseup", () => {
+      isMouseDown = false;
+    });
+
+    // Toolbar Selection
+    document.querySelectorAll(".tool-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tool-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        currentTool = btn.dataset.tool;
+      });
+    });
+
+    // Clear Flexible Blocks
+    document.getElementById("clearFlexBtn").addEventListener("click", () => {
+      if (confirm("Clear all flexible painted blocks? Your fixed courses and gym sessions will stay locked.")) {
+        savedSchedule = {};
+        localStorage.removeItem(STORAGE_KEY);
+        buildGrid();
+      }
+    });
+
+    buildGrid();
+  </script>
 </body>
 </html>
