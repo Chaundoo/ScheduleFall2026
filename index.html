@@ -38,7 +38,6 @@
       overflow-x: hidden;
     }
 
-    /* Centered container so it doesn't take up the whole screen */
     .app-container {
       max-width: 980px;
       margin: 0 auto;
@@ -50,7 +49,7 @@
       justify-content: space-between;
       align-items: center;
       gap: 12px;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
       background: var(--panel);
       padding: 14px 18px;
       border-radius: 12px;
@@ -62,6 +61,13 @@
       font-weight: 700;
     }
 
+    .header-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
     button.action-btn {
       background: #334155;
       color: var(--text);
@@ -70,13 +76,98 @@
       border-radius: 8px;
       cursor: pointer;
       font-weight: 600;
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       transition: all 0.15s ease;
+    }
+
+    button.action-btn:hover {
+      background: #475569;
+    }
+
+    button.action-btn.primary {
+      background: #2563eb;
+      border-color: #3b82f6;
+    }
+
+    button.action-btn.primary:hover {
+      background: #1d4ed8;
+    }
+
+    button.action-btn.success {
+      background: #059669;
+      border-color: #10b981;
+    }
+
+    button.action-btn.success:hover {
+      background: #047857;
     }
 
     button.action-btn.danger:hover {
       background: #dc2626;
       border-color: #ef4444;
+    }
+
+    /* Save / Load & Week Date Bar */
+    .sync-panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .sync-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .sync-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .sync-label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .code-input {
+      background: #0f172a;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 6px 10px;
+      font-size: 0.78rem;
+      font-family: monospace;
+      min-width: 210px;
+      flex: 1;
+      user-select: text;
+    }
+
+    .date-picker-input {
+      background: #0f172a;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 5px 9px;
+      font-size: 0.78rem;
+      color-scheme: dark;
+    }
+
+    .toast-msg {
+      font-size: 0.78rem;
+      color: #4ade80;
+      font-weight: 600;
+      display: none;
     }
 
     /* Quota Dashboard */
@@ -173,7 +264,7 @@
       flex-shrink: 0;
     }
 
-    /* Day View Selector Tabs (Great for Phone & Focusing on 1 Day) */
+    /* Day View Selector Tabs */
     .day-tabs {
       display: flex;
       flex-wrap: wrap;
@@ -187,17 +278,27 @@
 
     .day-tab {
       flex: 1;
-      min-width: 58px;
+      min-width: 68px;
       text-align: center;
-      padding: 7px 8px;
+      padding: 6px 6px;
       border-radius: 7px;
       border: 1px solid transparent;
       background: #0f172a;
       color: var(--muted);
       font-weight: 700;
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       cursor: pointer;
       transition: all 0.15s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+    }
+
+    .day-tab span.tab-date {
+      font-size: 0.68rem;
+      font-weight: 500;
+      opacity: 0.85;
     }
 
     .day-tab.active {
@@ -205,472 +306,7 @@
       color: #ffffff;
     }
 
-    /* Schedule Grid Container - NO inner scrollbars */
+    /* Schedule Grid Container - Single Page Scrollbar */
     .schedule-wrapper {
       background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      overflow: visible;
-    }
-
-    .schedule-grid {
-      display: grid;
-      width: 100%;
-    }
-
-    .grid-header {
-      background: #0f172a;
-      padding: 10px 4px;
-      text-align: center;
-      font-weight: 700;
-      font-size: 0.85rem;
-      border-bottom: 2px solid var(--border);
-      border-right: 1px solid var(--border);
-      position: sticky;
-      top: 0;
-      z-index: 20;
-    }
-
-    .grid-header:first-child {
-      border-top-left-radius: 11px;
-    }
-
-    .grid-header:last-child {
-      border-top-right-radius: 11px;
-      border-right: none;
-    }
-
-    .time-label {
-      padding: 0 6px;
-      text-align: right;
-      font-size: 0.7rem;
-      color: var(--muted);
-      border-right: 1px solid var(--border);
-      border-bottom: 1px solid rgba(51, 65, 85, 0.35);
-      height: 22px;
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      background: #0f172a;
-      white-space: nowrap;
-    }
-
-    .time-label.hour-mark {
-      color: var(--text);
-      font-weight: 700;
-      border-top: 1px solid var(--border);
-    }
-
-    .slot {
-      height: 22px;
-      border-right: 1px solid rgba(51, 65, 85, 0.45);
-      border-bottom: 1px solid rgba(51, 65, 85, 0.25);
-      padding: 0 5px;
-      font-size: 0.72rem;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      cursor: pointer;
-    }
-
-    .slot.hour-row {
-      border-top: 1px solid var(--border);
-    }
-
-    .slot:hover:not(.locked) {
-      filter: brightness(1.2);
-    }
-
-    .slot.locked {
-      cursor: not-allowed;
-      font-weight: 700;
-    }
-
-    /* Block Category Styles */
-    .cat-class { background: rgba(59, 130, 246, 0.88); color: #fff; }
-    .cat-capstone-fixed { background: rgba(99, 102, 241, 0.92); color: #fff; }
-    .cat-gym { background: rgba(239, 68, 68, 0.9); color: #fff; }
-    .cat-capstone { background: rgba(139, 92, 246, 0.85); color: #fff; }
-    .cat-intern { background: rgba(16, 185, 129, 0.85); color: #fff; }
-    .cat-hw { background: rgba(245, 158, 11, 0.88); color: #0f172a; }
-    .cat-work { background: rgba(6, 182, 212, 0.85); color: #0f172a; }
-    .cat-personal { background: rgba(236, 72, 153, 0.85); color: #fff; }
-
-    /* Mobile tweaks */
-    @media (max-width: 680px) {
-      body {
-        padding: 10px 8px 50px;
-      }
-      .header h1 {
-        font-size: 1.05rem;
-      }
-      .slot {
-        height: 26px;
-        font-size: 0.76rem;
-      }
-      .time-label {
-        height: 26px;
-        font-size: 0.72rem;
-      }
-    }
-  </style>
-</head>
-<body>
-
-  <div class="app-container">
-    <div class="header">
-      <div>
-        <h1>Fall Schedule & Quota Tracker (7:00 AM – 12:00 AM)</h1>
-        <p style="font-size: 0.78rem; color: var(--muted); margin-top: 2px;">
-          Click/tap or drag across open slots to schedule blocks. Use Day Tabs below for an easy mobile view.
-        </p>
-      </div>
-      <button class="action-btn danger" id="clearFlexBtn">Reset Flexible Blocks</button>
-    </div>
-
-    <!-- Quota Dashboard -->
-    <div class="dashboard">
-      <div class="quota-card">
-        <div class="quota-header">
-          <span>Capstone Work Quota</span>
-          <span id="capText">0.0 / 9.0 hrs</span>
-        </div>
-        <div class="progress-track">
-          <div class="progress-fill" id="capBar" style="background: var(--quota-capstone);"></div>
-        </div>
-        <div class="quota-sub">
-          <span>Target: 9 hrs/wk</span>
-          <span id="capStatus">9.0 hrs remaining</span>
-        </div>
-      </div>
-
-      <div class="quota-card">
-        <div class="quota-header">
-          <span>Internship Applications</span>
-          <span id="internText">0.0 / 7.0 hrs</span>
-        </div>
-        <div class="progress-track">
-          <div class="progress-fill" id="internBar" style="background: var(--quota-intern);"></div>
-        </div>
-        <div class="quota-sub">
-          <span>Target: 7 hrs/wk</span>
-          <span id="internStatus">7.0 hrs remaining</span>
-        </div>
-      </div>
-
-      <div class="quota-card">
-        <div class="quota-header">
-          <span>Homework & Study</span>
-          <span id="hwText">0.0 / 6.0 hrs</span>
-        </div>
-        <div class="progress-track">
-          <div class="progress-fill" id="hwBar" style="background: var(--quota-hw);"></div>
-        </div>
-        <div class="quota-sub">
-          <span>Target: 6 hrs/wk</span>
-          <span id="hwStatus">6.0 hrs remaining</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Category Painting Toolbar -->
-    <div class="toolbar">
-      <span class="toolbar-label">Paint:</span>
-      <button class="tool-btn active" data-tool="capstone">
-        <span class="color-dot" style="background: var(--quota-capstone);"></span> Capstone (9h)
-      </button>
-      <button class="tool-btn" data-tool="intern">
-        <span class="color-dot" style="background: var(--quota-intern);"></span> Internships (7h)
-      </button>
-      <button class="tool-btn" data-tool="hw">
-        <span class="color-dot" style="background: var(--quota-hw);"></span> Homework (6h)
-      </button>
-      <button class="tool-btn" data-tool="work">
-        <span class="color-dot" style="background: var(--work-color);"></span> Work
-      </button>
-      <button class="tool-btn" data-tool="personal">
-        <span class="color-dot" style="background: var(--personal-color);"></span> Personal
-      </button>
-      <button class="tool-btn" data-tool="erase">
-        <span class="color-dot" style="background: #64748b; border: 1px solid #fff;"></span> Eraser
-      </button>
-    </div>
-
-    <!-- Day Selector Tabs -->
-    <div class="day-tabs" id="dayTabs">
-      <button class="day-tab" data-day="ALL">Full Week</button>
-      <button class="day-tab" data-day="Mon">Mon</button>
-      <button class="day-tab" data-day="Tue">Tue</button>
-      <button class="day-tab" data-day="Wed">Wed</button>
-      <button class="day-tab" data-day="Thu">Thu</button>
-      <button class="day-tab" data-day="Fri">Fri</button>
-      <button class="day-tab" data-day="Sat">Sat</button>
-      <button class="day-tab" data-day="Sun">Sun</button>
-    </div>
-
-    <!-- Main Schedule Grid -->
-    <div class="schedule-wrapper">
-      <div class="schedule-grid" id="scheduleGrid"></div>
-    </div>
-  </div>
-
-  <script>
-    const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-    const START_HOUR = 7;  // 7:00 AM
-    const END_HOUR = 24;   // 12:00 AM (Midnight)
-    const STORAGE_KEY = "fall_schedule_planner_v2";
-
-    const CATEGORY_META = {
-      capstone: { label: "Capstone Work", className: "cat-capstone" },
-      intern:   { label: "Internship Apps", className: "cat-intern" },
-      hw:       { label: "Homework / Study", className: "cat-hw" },
-      work:     { label: "Work", className: "cat-work" },
-      personal: { label: "Personal", className: "cat-personal" }
-    };
-
-    const FIXED_EVENTS = [
-      { days: ["Mon", "Wed", "Fri"], start: "09:30", end: "10:30", title: "Signals & Systems", type: "cat-class" },
-      { days: ["Mon", "Wed", "Fri"], start: "10:45", end: "11:45", title: "Multi Calculus", type: "cat-class" },
-      { days: ["Mon", "Wed", "Fri"], start: "13:15", end: "14:15", title: "Machine Design", type: "cat-class" },
-      { days: ["Tue", "Thu"], start: "12:15", end: "13:45", title: "Dynamics", type: "cat-class" },
-      { days: ["Wed"], start: "14:30", end: "17:30", title: "Capstone Design", type: "cat-capstone-fixed" },
-      { days: ["Mon"], start: "19:15", end: "20:15", title: "Capstone Meeting", type: "cat-capstone-fixed" },
-      { days: ["Tue"], start: "20:00", end: "22:00", title: "Gym w/ Eric (Back/Bi)", type: "cat-gym" },
-      { days: ["Wed"], start: "20:00", end: "22:00", title: "Gym w/ Eric (Legs)", type: "cat-gym" },
-      { days: ["Sat"], start: "08:30", end: "10:30", title: "Gym w/ Eric (Push)", type: "cat-gym" }
-    ];
-
-    let currentTool = "capstone";
-    let isMouseDown = false;
-    let savedSchedule = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-
-    // Default to single-day view on phone screens (< 680px), or Full Week on desktop
-    const todayIndex = new Date().getDay(); // 0=Sun, 1=Mon...
-    const defaultMobileDay = DAYS[(todayIndex + 6) % 7] || "Mon";
-    let activeDayFilter = window.innerWidth <= 680 ? defaultMobileDay : "ALL";
-
-    function syncDayTabUI() {
-      document.querySelectorAll(".day-tab").forEach(btn => {
-        btn.classList.toggle("active", btn.dataset.day === activeDayFilter);
-      });
-    }
-
-    function timeToMinutes(timeStr) {
-      const [h, m] = timeStr.split(":").map(Number);
-      return h * 60 + m;
-    }
-
-    function formatTime12(hour, minute) {
-      const nextTotalMin = hour * 60 + minute + 15;
-      const endH = Math.floor(nextTotalMin / 60);
-      const endM = nextTotalMin % 60;
-
-      const fmt = (h, m) => {
-        const period = (h === 24 || h === 0) ? "AM" : (h >= 12 ? "PM" : "AM");
-        const h12 = h % 12 === 0 ? 12 : h % 12;
-        return `${h12}:${String(m).padStart(2, "0")} ${period}`;
-      };
-
-      if (minute === 0) return fmt(hour, minute);
-      if (endH === 24 && endM === 0) return "11:45 - 12 AM";
-      return `:${String(minute).padStart(2, "0")}`;
-    }
-
-    function getFixedEventForSlot(day, slotMinutes) {
-      for (const ev of FIXED_EVENTS) {
-        if (!ev.days.includes(day)) continue;
-        const startMin = timeToMinutes(ev.start);
-        const endMin = timeToMinutes(ev.end);
-        if (slotMinutes >= startMin && slotMinutes < endMin) {
-          return { ...ev, isStart: slotMinutes === startMin };
-        }
-      }
-      return null;
-    }
-
-    function buildGrid() {
-      const grid = document.getElementById("scheduleGrid");
-      grid.innerHTML = "";
-
-      const visibleDays = activeDayFilter === "ALL" ? DAYS : [activeDayFilter];
-      grid.style.gridTemplateColumns = `82px repeat(${visibleDays.length}, minmax(0, 1fr))`;
-
-      // Header Row
-      const timeHeader = document.createElement("div");
-      timeHeader.className = "grid-header";
-      timeHeader.textContent = "Time";
-      grid.appendChild(timeHeader);
-
-      visibleDays.forEach(day => {
-        const dHeader = document.createElement("div");
-        dHeader.className = "grid-header";
-        dHeader.textContent = day;
-        grid.appendChild(dHeader);
-      });
-
-      // Generate 15-minute intervals from 7:00 AM (7) to Midnight (24)
-      for (let hour = START_HOUR; hour < END_HOUR; hour++) {
-        for (let min = 0; min < 60; min += 15) {
-          const slotMinutes = hour * 60 + min;
-          const timeKey = `${String(hour).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
-
-          const timeCell = document.createElement("div");
-          timeCell.className = "time-label" + (min === 0 ? " hour-mark" : "");
-          timeCell.textContent = formatTime12(hour, min);
-          grid.appendChild(timeCell);
-
-          visibleDays.forEach(day => {
-            const slotId = `${day}_${timeKey}`;
-            const slot = document.createElement("div");
-            slot.className = "slot" + (min === 0 ? " hour-row" : "");
-            slot.dataset.slotId = slotId;
-
-            const fixed = getFixedEventForSlot(day, slotMinutes);
-            if (fixed) {
-              slot.classList.add("locked", fixed.type);
-              if (fixed.isStart) {
-                slot.textContent = fixed.title;
-              }
-            } else {
-              const savedCat = savedSchedule[slotId];
-              if (savedCat && CATEGORY_META[savedCat]) {
-                slot.classList.add(CATEGORY_META[savedCat].className);
-                slot.dataset.category = savedCat;
-              }
-
-              slot.addEventListener("mousedown", (e) => {
-                if (e.button !== 0) return;
-                isMouseDown = true;
-                applyToolToSlot(slot);
-              });
-
-              slot.addEventListener("mouseenter", () => {
-                if (isMouseDown) {
-                  applyToolToSlot(slot);
-                }
-              });
-            }
-
-            grid.appendChild(slot);
-          });
-        }
-      }
-
-      updateSlotLabels();
-      updateQuotas();
-    }
-
-    function applyToolToSlot(slot) {
-      if (slot.classList.contains("locked")) return;
-      const slotId = slot.dataset.slotId;
-
-      Object.values(CATEGORY_META).forEach(meta => slot.classList.remove(meta.className));
-      delete slot.dataset.category;
-
-      if (currentTool === "erase") {
-        delete savedSchedule[slotId];
-        slot.textContent = "";
-      } else {
-        const meta = CATEGORY_META[currentTool];
-        slot.classList.add(meta.className);
-        slot.dataset.category = currentTool;
-        savedSchedule[slotId] = currentTool;
-      }
-
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(savedSchedule));
-      updateSlotLabels();
-      updateQuotas();
-    }
-
-    function updateSlotLabels() {
-      const visibleDays = activeDayFilter === "ALL" ? DAYS : [activeDayFilter];
-      visibleDays.forEach(day => {
-        let prevCat = null;
-        for (let hour = START_HOUR; hour < END_HOUR; hour++) {
-          for (let min = 0; min < 60; min += 15) {
-            const timeKey = `${String(hour).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
-            const slotId = `${day}_${timeKey}`;
-            const slot = document.querySelector(`[data-slot-id="${slotId}"]`);
-            if (!slot || slot.classList.contains("locked")) {
-              prevCat = null;
-              continue;
-            }
-            const cat = slot.dataset.category || null;
-            if (cat && cat !== prevCat) {
-              slot.textContent = CATEGORY_META[cat].label;
-            } else {
-              slot.textContent = "";
-            }
-            prevCat = cat;
-          }
-        }
-      });
-    }
-
-    function updateQuotas() {
-      let counts = { capstone: 0, intern: 0, hw: 0 };
-      Object.values(savedSchedule).forEach(cat => {
-        if (counts[cat] !== undefined) {
-          counts[cat] += 0.25;
-        }
-      });
-
-      const updateCard = (hours, target, textId, barId, statusId) => {
-        const pct = Math.min(100, (hours / target) * 100);
-        document.getElementById(textId).textContent = `${hours.toFixed(2)} / ${target.toFixed(1)} hrs`;
-        document.getElementById(barId).style.width = `${pct}%`;
-        const rem = target - hours;
-        const statusEl = document.getElementById(statusId);
-        if (rem <= 0) {
-          statusEl.textContent = "Quota Met! ✓";
-          statusEl.style.color = "#4ade80";
-        } else {
-          statusEl.textContent = `${rem.toFixed(2)} hrs remaining`;
-          statusEl.style.color = "var(--muted)";
-        }
-      };
-
-      updateCard(counts.capstone, 9, "capText", "capBar", "capStatus");
-      updateCard(counts.intern, 7, "internText", "internBar", "internStatus");
-      updateCard(counts.hw, 6, "hwText", "hwBar", "hwStatus");
-    }
-
-    window.addEventListener("mouseup", () => {
-      isMouseDown = false;
-    });
-
-    // Paint Tool Selection
-    document.querySelectorAll(".tool-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        document.querySelectorAll(".tool-btn").forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
-        currentTool = btn.dataset.tool;
-      });
-    });
-
-    // Day Tab Selection
-    document.querySelectorAll(".day-tab").forEach(btn => {
-      btn.addEventListener("click", () => {
-        activeDayFilter = btn.dataset.day;
-        syncDayTabUI();
-        buildGrid();
-      });
-    });
-
-    // Reset Flexible Blocks
-    document.getElementById("clearFlexBtn").addEventListener("click", () => {
-      if (confirm("Clear all flexible painted blocks? Fixed courses and gym sessions stay locked.")) {
-        savedSchedule = {};
-        localStorage.removeItem(STORAGE_KEY);
-        buildGrid();
-      }
-    });
-
-    syncDayTabUI();
-    buildGrid();
-  </script>
-</body>
-</html>
+      border:
