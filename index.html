@@ -1,570 +1,677 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fall Weekly Schedule &amp; Quota Planner</title>
-  <style>
-    :root {
-      --bg: #0f172a; --panel: #1e293b; --border: #334155;
-      --text: #f8fafc; --muted: #94a3b8;
-      --quota-capstone: #8b5cf6; --quota-intern: #10b981;
-      --quota-hw: #f59e0b; --work-color: #06b6d4; --personal-color: #ec4899;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 18px 12px 60px; line-height: 1.4; overflow-x: hidden; }
-    .app-container { max-width: 980px; margin: 0 auto; }
-    .header, .sync-panel, .quota-card, .toolbar, .day-tabs, .schedule-wrapper { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; }
-    .header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; padding: 14px 18px; }
-    .header h1 { font-size: 1.18rem; font-weight: 700; }
-    .header-actions, .sync-group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-    button.action-btn { background: #334155; color: var(--text); border: 1px solid #475569; padding: 7px 12px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.78rem; }
-    button.action-btn:hover { background: #475569; }
-    button.action-btn.primary { background: #2563eb; border-color: #3b82f6; }
-    button.action-btn.success { background: #059669; border-color: #10b981; }
-    button.action-btn.danger:hover { background: #dc2626; border-color: #ef4444; }
-    .sync-panel { padding: 12px 16px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px; }
-    .sync-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
-    .sync-label { font-size: 0.78rem; color: var(--muted); font-weight: 600; }
-    .code-input, .date-picker-input { background: #0f172a; color: var(--text); border: 1px solid var(--border); border-radius: 7px; padding: 6px 10px; font-size: 0.78rem; user-select: text; color-scheme: dark; }
-    .code-input { font-family: monospace; min-width: 200px; flex: 1; }
-    .toast-msg { font-size: 0.78rem; color: #4ade80; font-weight: 600; display: none; }
-    .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 12px; }
-    .quota-card { padding: 12px 16px; }
-    .quota-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-weight: 600; font-size: 0.88rem; }
-    .progress-track { width: 100%; height: 8px; background: #0f172a; border-radius: 999px; overflow: hidden; border: 1px solid var(--border); }
-    .progress-fill { height: 100%; width: 0%; transition: width 0.2s ease; }
-    .quota-sub { font-size: 0.75rem; color: var(--muted); margin-top: 5px; display: flex; justify-content: space-between; }
-    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 14px; margin-bottom: 12px; align-items: center; }
-    .tool-btn { display: flex; align-items: center; gap: 6px; padding: 6px 11px; border-radius: 8px; border: 2px solid transparent; background: #0f172a; color: var(--text); cursor: pointer; font-size: 0.78rem; font-weight: 600; }
-    .tool-btn.active { border-color: #f8fafc; background: #1e293b; }
-    .color-dot { width: 10px; height: 10px; border-radius: 50%; }
-    .day-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; padding: 8px; }
-    .day-tab { flex: 1; min-width: 64px; text-align: center; padding: 6px; border-radius: 7px; border: none; background: #0f172a; color: var(--muted); font-weight: 700; font-size: 0.78rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; }
-    .day-tab span.tab-date { font-size: 0.68rem; font-weight: 500; opacity: 0.85; }
-    .day-tab.active { background: #3b82f6; color: #fff; }
-    .schedule-wrapper { overflow: visible; }
-    .schedule-grid { display: grid; width: 100%; }
-    .grid-header { background: #0f172a; padding: 8px 4px; text-align: center; font-weight: 700; font-size: 0.84rem; border-bottom: 2px solid var(--border); border-right: 1px solid var(--border); position: sticky; top: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; gap: 3px; }
-    .day-date-input { background: #1e293b; color: #38bdf8; border: 1px dashed #475569; border-radius: 5px; padding: 1px 4px; font-size: 0.71rem; font-weight: 600; text-align: center; width: 90%; max-width: 86px; user-select: text; }
-    .day-date-input:focus { outline: none; border: 1px solid #38bdf8; background: #0f172a; color: #fff; }
-    .time-label { padding: 0 6px; text-align: right; font-size: 0.7rem; color: var(--muted); border-right: 1px solid var(--border); border-bottom: 1px solid rgba(51,65,85,0.35); height: 22px; display: flex; align-items: center; justify-content: flex-end; background: #0f172a; white-space: nowrap; }
-    .time-label.hour-mark { color: var(--text); font-weight: 700; border-top: 1px solid var(--border); }
-    .slot { height: 22px; border-right: 1px solid rgba(51,65,85,0.45); border-bottom: 1px solid rgba(51,65,85,0.25); padding: 0 5px; font-size: 0.72rem; font-weight: 600; display: flex; align-items: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; cursor: pointer; }
-    .slot.hour-row { border-top: 1px solid var(--border); }
-    .slot:hover:not(.locked) { filter: brightness(1.2); }
-    .slot.locked { cursor: not-allowed; font-weight: 700; }
-    .cat-class { background: rgba(59,130,246,0.88); color: #fff; }
-    .cat-capstone-fixed { background: rgba(99,102,241,0.92); color: #fff; }
-    .cat-gym { background: rgba(239,68,68,0.9); color: #fff; }
-    .cat-capstone { background: rgba(139,92,246,0.85); color: #fff; }
-    .cat-intern { background: rgba(16,185,129,0.85); color: #fff; }
-    .cat-hw { background: rgba(245,158,11,0.88); color: #0f172a; }
-    .cat-work { background: rgba(6,182,212,0.85); color: #0f172a; }
-    .cat-personal { background: rgba(236,72,153,0.85); color: #fff; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Fall Schedule Planner</title>
+<style>
+  /* Layout: single column app — header, sync bar, quota cards, paint toolbar, 15-min grid. Dark-only by design. */
+  :root {
+    --bg: #0f172a; --panel: #1e293b; --border: #334155;
+    --text: #f8fafc; --muted: #94a3b8;
+    --quota-capstone: #8b5cf6; --quota-intern: #10b981;
+    --quota-hw: #f59e0b; --work-color: #06b6d4; --personal-color: #ec4899;
+    --ok: #4ade80; --warn: #fbbf24; --bad: #f87171;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); padding-block: 18px 60px; padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); line-height: 1.4; overflow-x: hidden; }
+  .app-container { max-width: 980px; margin: 0 auto; user-select: none; }
+  .header, .sync-panel, .quota-card, .toolbar, .day-tabs, .schedule-wrapper { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; }
+  .header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; padding: 14px 18px; }
+  .header h1 { font-size: 1.18rem; font-weight: 700; text-wrap: balance; }
+  .header p { font-size: 0.78rem; color: var(--muted); }
+  .header-actions, .sync-group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  button.action-btn { background: #334155; color: var(--text); border: 1px solid #475569; padding: 7px 12px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.78rem; }
+  button.action-btn:hover { background: #475569; }
+  button.action-btn:focus-visible, .tool-btn:focus-visible, .day-tab:focus-visible, .pin-key:focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; }
+  [hidden] { display: none !important; }
+  button.action-btn.primary { background: #2563eb; border-color: #3b82f6; }
+  .help { width: 100%; font-size: 0.76rem; color: var(--muted); user-select: text; }
+  .help summary { cursor: pointer; font-weight: 600; color: #38bdf8; }
+  .help ol { margin: 8px 0 6px 18px; display: grid; gap: 4px; }
+  .help code { background: #0f172a; padding: 1px 5px; border-radius: 4px; color: var(--text); }
+  button.action-btn.success { background: #059669; border-color: #10b981; }
+  button.action-btn.danger:hover, button.action-btn.armed { background: #dc2626; border-color: #ef4444; }
+  .sync-panel { padding: 12px 16px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .sync-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+  .sync-label { font-size: 0.78rem; color: var(--muted); font-weight: 600; }
+  .sync-status { display: inline-flex; align-items: center; gap: 7px; font-size: 0.8rem; font-weight: 700; }
+  .sync-status .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+  .sync-status[data-state="synced"] .dot { background: var(--ok); }
+  .sync-status[data-state="saving"] .dot { background: var(--warn); }
+  .sync-status[data-state="local"] .dot { background: var(--bad); }
+  .sync-status small { font-weight: 500; color: var(--muted); font-size: 0.72rem; }
+  .code-input, .date-picker-input { background: #0f172a; color: var(--text); border: 1px solid var(--border); border-radius: 7px; padding: 6px 10px; font-size: 0.78rem; user-select: text; }
+  .code-input { font-family: monospace; min-width: 0; flex: 1 1 200px; }
+  .toast-msg { font-size: 0.78rem; color: var(--ok); font-weight: 600; }
+  .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 12px; }
+  .quota-card { padding: 12px 16px; }
+  .quota-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-weight: 600; font-size: 0.88rem; font-variant-numeric: tabular-nums; }
+  .progress-track { width: 100%; height: 8px; background: #0f172a; border-radius: 999px; overflow: hidden; border: 1px solid var(--border); }
+  .progress-fill { height: 100%; width: 0%; transition: width 0.2s ease; }
+  .quota-sub { font-size: 0.75rem; color: var(--muted); margin-top: 5px; display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 14px; margin-bottom: 12px; align-items: center; }
+  .tool-btn { display: flex; align-items: center; gap: 6px; padding: 6px 11px; border-radius: 8px; border: 2px solid transparent; background: #0f172a; color: var(--text); cursor: pointer; font-size: 0.78rem; font-weight: 600; }
+  .tool-btn.active { border-color: var(--text); background: var(--panel); }
+  .color-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .day-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; padding: 8px; }
+  .day-tab { flex: 1; min-width: 64px; text-align: center; padding: 6px; border-radius: 7px; border: none; background: #0f172a; color: var(--muted); font-weight: 700; font-size: 0.78rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; }
+  .day-tab span.tab-date { font-size: 0.68rem; font-weight: 500; opacity: 0.85; }
+  .day-tab.active { background: #3b82f6; color: #fff; }
+  .schedule-grid { display: grid; width: 100%; }
+  .grid-header { background: #0f172a; padding: 8px 4px; text-align: center; font-weight: 700; font-size: 0.84rem; border-bottom: 2px solid var(--border); border-right: 1px solid var(--border); position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .day-date-input { background: var(--panel); color: #38bdf8; border: 1px dashed #475569; border-radius: 5px; padding: 1px 4px; font-size: 0.71rem; font-weight: 600; text-align: center; width: 90%; max-width: 86px; user-select: text; }
+  .day-date-input:focus { outline: none; border: 1px solid #38bdf8; background: #0f172a; color: #fff; }
+  .time-label { padding: 0 6px; text-align: right; font-size: 0.7rem; color: var(--muted); border-right: 1px solid var(--border); border-bottom: 1px solid rgba(51,65,85,0.35); height: 22px; display: flex; align-items: center; justify-content: flex-end; background: #0f172a; white-space: nowrap; }
+  .time-label.hour-mark { color: var(--text); font-weight: 700; border-top: 1px solid var(--border); }
+  .slot { height: 22px; border-right: 1px solid rgba(51,65,85,0.45); border-bottom: 1px solid rgba(51,65,85,0.25); padding: 0 5px; font-size: 0.72rem; font-weight: 600; display: flex; align-items: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; cursor: pointer; min-width: 0; }
+  .slot.hour-row { border-top: 1px solid var(--border); }
+  .slot:hover:not(.locked) { filter: brightness(1.2); }
+  .slot.locked { cursor: not-allowed; font-weight: 700; }
+  .cat-class { background: rgba(59,130,246,0.88); color: #fff; }
+  .cat-capstone-fixed { background: rgba(99,102,241,0.92); color: #fff; }
+  .cat-gym { background: rgba(239,68,68,0.9); color: #fff; }
+  .cat-capstone { background: rgba(139,92,246,0.85); color: #fff; }
+  .cat-intern { background: rgba(16,185,129,0.85); color: #fff; }
+  .cat-hw { background: rgba(245,158,11,0.88); color: #0f172a; }
+  .cat-work { background: rgba(6,182,212,0.85); color: #0f172a; }
+  .cat-personal { background: rgba(236,72,153,0.85); color: #fff; }
 
-    /* PIN Lock Overlay Styles */
-    .pin-overlay {
-      position: fixed; inset: 0; z-index: 9999;
-      background: rgba(15, 23, 42, 0.85);
-      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-      display: flex; align-items: center; justify-content: center; padding: 16px;
-    }
-    .pin-overlay.hidden { display: none; }
-    .pin-card {
-      background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
-      padding: 24px 22px; width: 100%; max-width: 320px; text-align: center;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-    }
-    .pin-card h2 { font-size: 1.15rem; margin-bottom: 6px; }
-    .pin-card p { font-size: 0.78rem; color: var(--muted); margin-bottom: 16px; }
-    .pin-dots { display: flex; justify-content: center; gap: 12px; margin-bottom: 14px; }
-    .pin-dot {
-      width: 44px; height: 48px; border-radius: 9px; background: #0f172a;
-      border: 2px solid var(--border); display: flex; align-items: center;
-      justify-content: center; font-size: 1.35rem; font-weight: 700; color: var(--text);
-    }
-    .pin-dot.filled { border-color: #3b82f6; color: #38bdf8; }
-    .pin-dot.error { border-color: #ef4444; color: #ef4444; }
-    .pin-error-msg { color: #f87171; font-size: 0.76rem; font-weight: 600; min-height: 18px; margin-bottom: 10px; }
-    .pin-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    .pin-key {
-      background: #0f172a; color: var(--text); border: 1px solid var(--border);
-      border-radius: 9px; padding: 12px 0; font-size: 1rem; font-weight: 700;
-      cursor: pointer; transition: background 0.15s;
-    }
-    .pin-key:hover { background: #334155; }
-    .pin-key:active { transform: scale(0.97); }
-    .pin-key.sub-key { font-size: 0.78rem; color: var(--muted); font-weight: 600; }
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      25% { transform: translateX(-7px); }
-      75% { transform: translateX(7px); }
-    }
-    .shake { animation: shake 0.25s ease-in-out; }
-  </style>
+  .pin-overlay { position: fixed; inset: 0; z-index: 9999; background: rgba(15,23,42,0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .pin-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 24px 22px; width: 100%; max-width: 320px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+  .pin-card h2 { font-size: 1.15rem; margin-bottom: 6px; }
+  .pin-card p { font-size: 0.78rem; color: var(--muted); margin-bottom: 16px; }
+  .pin-dots { display: flex; justify-content: center; gap: 12px; margin-bottom: 14px; }
+  .pin-dot { width: 44px; height: 48px; border-radius: 9px; background: #0f172a; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 1.35rem; font-weight: 700; color: var(--text); }
+  .pin-dot.filled { border-color: #3b82f6; color: #38bdf8; }
+  .pin-dot.error { border-color: #ef4444; color: #ef4444; }
+  .pin-error-msg { color: var(--bad); font-size: 0.76rem; font-weight: 600; min-height: 18px; margin-bottom: 10px; }
+  .pin-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .pin-key { background: #0f172a; color: var(--text); border: 1px solid var(--border); border-radius: 9px; padding: 12px 0; font-size: 1rem; font-weight: 700; cursor: pointer; }
+  .pin-key:hover { background: #334155; }
+  .pin-key.sub-key { font-size: 0.78rem; color: var(--muted); font-weight: 600; }
+  @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-7px); } 75% { transform: translateX(7px); } }
+  .shake { animation: shake 0.25s ease-in-out; }
+  @media (prefers-reduced-motion: reduce) { .shake { animation: none; } .progress-fill { transition: none; } }
+</style>
 </head>
 <body>
-  <!-- PIN Lock Modal -->
-  <div class="pin-overlay" id="pinOverlay">
-    <div class="pin-card" id="pinCard">
-      <h2>🔒 Schedule Protected</h2>
-      <p>Enter the 4-digit site password to view and edit Ryan's Fall Schedule.</p>
-      <div class="pin-dots" id="pinDots">
-        <div class="pin-dot"></div>
-        <div class="pin-dot"></div>
-        <div class="pin-dot"></div>
-        <div class="pin-dot"></div>
+
+<div class="pin-overlay" id="pinOverlay" hidden>
+  <div class="pin-card" id="pinCard">
+    <h2>Schedule Protected</h2>
+    <p>Enter the 4-digit PIN to view and edit Ryan's Fall Schedule.</p>
+    <div class="pin-dots" id="pinDots">
+      <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+    </div>
+    <div class="pin-error-msg" id="pinErrorMsg"></div>
+    <div class="pin-keypad">
+      <button class="pin-key" data-key="1">1</button><button class="pin-key" data-key="2">2</button><button class="pin-key" data-key="3">3</button>
+      <button class="pin-key" data-key="4">4</button><button class="pin-key" data-key="5">5</button><button class="pin-key" data-key="6">6</button>
+      <button class="pin-key" data-key="7">7</button><button class="pin-key" data-key="8">8</button><button class="pin-key" data-key="9">9</button>
+      <button class="pin-key sub-key" data-key="clear">Clear</button><button class="pin-key" data-key="0">0</button><button class="pin-key sub-key" data-key="back">⌫</button>
+    </div>
+  </div>
+</div>
+
+<div class="app-container">
+  <div class="header">
+    <div>
+      <h1>Fall Schedule &amp; Quota Tracker (7:00 AM – 12:00 AM)</h1>
+      <p>Changes save automatically. Connect GitHub sync below to see them on every device. Click a date under a day to edit it.</p>
+    </div>
+    <div class="header-actions">
+      <button class="action-btn" id="lockSiteBtn">Lock</button>
+      <button class="action-btn" id="restoreDefaultBtn">Restore Default Schedule</button>
+      <button class="action-btn danger" id="clearFlexBtn">Clear Flexible</button>
+    </div>
+  </div>
+
+  <div class="sync-panel">
+    <div class="sync-row">
+      <span class="sync-status" id="syncStatus" data-state="connecting"><span class="dot"></span><span id="syncText">Connecting…</span></span>
+      <div class="sync-group">
+        <span class="sync-label">Auto-fill week from Monday:</span>
+        <input type="date" id="weekStartPicker" class="date-picker-input" value="2026-10-12">
       </div>
-      <div class="pin-error-msg" id="pinErrorMsg"></div>
-      <div class="pin-keypad">
-        <button class="pin-key" data-key="1">1</button>
-        <button class="pin-key" data-key="2">2</button>
-        <button class="pin-key" data-key="3">3</button>
-        <button class="pin-key" data-key="4">4</button>
-        <button class="pin-key" data-key="5">5</button>
-        <button class="pin-key" data-key="6">6</button>
-        <button class="pin-key" data-key="7">7</button>
-        <button class="pin-key" data-key="8">8</button>
-        <button class="pin-key" data-key="9">9</button>
-        <button class="pin-key sub-key" data-key="clear">Clear</button>
-        <button class="pin-key" data-key="0">0</button>
-        <button class="pin-key sub-key" data-key="back">⌫</button>
+    </div>
+    <div class="sync-row">
+      <div class="sync-group" style="width:100%">
+        <span class="sync-label">Backup:</span>
+        <button class="action-btn success" id="copyJsonBtn">Copy Save Code</button>
+        <input type="text" id="importCodeInput" class="code-input" placeholder="Paste a Save Code to restore…">
+        <button class="action-btn" id="loadJsonBtn">Apply Save Code</button>
+        <span class="toast-msg" id="toastMsg" hidden></span>
+      </div>
+    </div>
+    <div class="sync-row" id="ghSetup" hidden>
+      <div class="sync-group" style="width:100%">
+        <span class="sync-label">Sync devices:</span>
+        <input type="password" id="ghTokenInput" class="code-input" placeholder="Paste GitHub token (gist scope only)" autocomplete="off">
+        <button class="action-btn primary" id="ghConnectBtn">Connect this device</button>
+      </div>
+      <details class="help">
+        <summary>How to get a token (once per device, about 1 minute)</summary>
+        <ol>
+          <li>On GitHub, go to Settings → Developer settings → Personal access tokens → <b>Tokens (classic)</b> → Generate new token (classic).</li>
+          <li>Name it "Schedule sync", pick an expiration, and tick <b>only</b> the <code>gist</code> box. Generate it and copy it.</li>
+          <li>Paste it above and tap Connect. The first device creates a secret gist to hold your schedule; every other device you connect with the same token finds it automatically.</li>
+        </ol>
+        <p>The token is stored only in this browser. It is never saved into the site's code, so it's safe to keep the repo public.</p>
+      </details>
+    </div>
+    <div class="sync-row" id="ghConnected" hidden>
+      <span class="sync-label">This device syncs through a secret GitHub gist.</span>
+      <div class="sync-group">
+        <button class="action-btn" id="ghSyncNowBtn">Sync now</button>
+        <button class="action-btn danger" id="ghDisconnectBtn">Disconnect this device</button>
       </div>
     </div>
   </div>
 
-  <div class="app-container">
-    <div class="header">
-      <div>
-        <h1>Fall Schedule &amp; Quota Tracker (7:00 AM – 12:00 AM)</h1>
-        <p style="font-size: 0.78rem; color: var(--muted);">Click any date under a day to edit it. Use the export buttons below to save or share your schedule.</p>
-      </div>
-      <div class="header-actions">
-        <button class="action-btn" id="lockSiteBtn">🔒 Lock Site</button>
-        <button class="action-btn" id="restoreDefaultBtn">Restore Default Schedule</button>
-        <button class="action-btn danger" id="clearFlexBtn">Clear Flexible</button>
-      </div>
+  <div class="dashboard">
+    <div class="quota-card">
+      <div class="quota-header"><span>Capstone Work Quota</span><span id="capText">0.00 / 9.0 hrs</span></div>
+      <div class="progress-track"><div class="progress-fill" id="capBar" style="background: var(--quota-capstone);"></div></div>
+      <div class="quota-sub"><span>Target: 9 hrs/wk</span><span id="capStatus"></span></div>
     </div>
-
-    <div class="sync-panel">
-      <div class="sync-row">
-        <div class="sync-group">
-          <span class="sync-label">Portable Save:</span>
-          <button class="action-btn primary" id="copyHtmlBtn">Copy Full HTML (Baked-In Schedule)</button>
-          <button class="action-btn success" id="copyJsonBtn">Copy Save Code (For Chat / Backup)</button>
-          <span class="toast-msg" id="toastMsg">Full HTML copied! ✓</span>
-        </div>
-        <div class="sync-group">
-          <span class="sync-label">Auto-Fill Week From Monday:</span>
-          <input type="date" id="weekStartPicker" class="date-picker-input" value="2026-10-12">
-        </div>
-      </div>
-      <div class="sync-row">
-        <div class="sync-group" style="width: 100%;">
-          <span class="sync-label">Load Save Code:</span>
-          <input type="text" id="importCodeInput" class="code-input" placeholder="Paste Save Code JSON here to restore schedule &amp; dates...">
-          <button class="action-btn" id="loadJsonBtn">Apply Save Code</button>
-        </div>
-      </div>
+    <div class="quota-card">
+      <div class="quota-header"><span>Internship Applications</span><span id="internText">0.00 / 7.0 hrs</span></div>
+      <div class="progress-track"><div class="progress-fill" id="internBar" style="background: var(--quota-intern);"></div></div>
+      <div class="quota-sub"><span>Target: 7 hrs/wk</span><span id="internStatus"></span></div>
     </div>
-
-    <div class="dashboard">
-      <div class="quota-card">
-        <div class="quota-header"><span>Capstone Work Quota</span><span id="capText">0.00 / 9.0 hrs</span></div>
-        <div class="progress-track"><div class="progress-fill" id="capBar" style="background: var(--quota-capstone);"></div></div>
-        <div class="quota-sub"><span>Target: 9 hrs/wk</span><span id="capStatus">9.00 hrs remaining</span></div>
-      </div>
-      <div class="quota-card">
-        <div class="quota-header"><span>Internship Applications</span><span id="internText">0.00 / 7.0 hrs</span></div>
-        <div class="progress-track"><div class="progress-fill" id="internBar" style="background: var(--quota-intern);"></div></div>
-        <div class="quota-sub"><span>Target: 7 hrs/wk</span><span id="internStatus">7.00 hrs remaining</span></div>
-      </div>
-      <div class="quota-card">
-        <div class="quota-header"><span>Homework &amp; Study</span><span id="hwText">0.00 / 6.0 hrs</span></div>
-        <div class="progress-track"><div class="progress-fill" id="hwBar" style="background: var(--quota-hw);"></div></div>
-        <div class="quota-sub"><span>Target: 6 hrs/wk</span><span id="hwStatus">6.00 hrs remaining</span></div>
-      </div>
+    <div class="quota-card">
+      <div class="quota-header"><span>Homework &amp; Study</span><span id="hwText">0.00 / 6.0 hrs</span></div>
+      <div class="progress-track"><div class="progress-fill" id="hwBar" style="background: var(--quota-hw);"></div></div>
+      <div class="quota-sub"><span>Target: 6 hrs/wk</span><span id="hwStatus"></span></div>
     </div>
-
-    <div class="toolbar">
-      <span class="sync-label">Paint:</span>
-      <button class="tool-btn active" data-tool="capstone"><span class="color-dot" style="background: var(--quota-capstone);"></span> Capstone (9h)</button>
-      <button class="tool-btn" data-tool="intern"><span class="color-dot" style="background: var(--quota-intern);"></span> Internships (7h)</button>
-      <button class="tool-btn" data-tool="hw"><span class="color-dot" style="background: var(--quota-hw);"></span> Homework (6h)</button>
-      <button class="tool-btn" data-tool="work"><span class="color-dot" style="background: var(--work-color);"></span> Work</button>
-      <button class="tool-btn" data-tool="personal"><span class="color-dot" style="background: var(--personal-color);"></span> Personal</button>
-      <button class="tool-btn" data-tool="erase"><span class="color-dot" style="background: #64748b; border: 1px solid #fff;"></span> Eraser</button>
-    </div>
-
-    <div class="day-tabs" id="dayTabs"></div>
-    <div class="schedule-wrapper"><div class="schedule-grid" id="scheduleGrid"></div></div>
   </div>
 
-  <script>
-    const SITE_PIN = "6095";
-    const AUTH_SESSION_KEY = "fall_schedule_unlocked_v3";
-    let isUnlocked = sessionStorage.getItem(AUTH_SESSION_KEY) === "true";
-    let enteredPin = "";
+  <div class="toolbar">
+    <span class="sync-label">Paint:</span>
+    <button class="tool-btn active" data-tool="capstone"><span class="color-dot" style="background: var(--quota-capstone);"></span> Capstone (9h)</button>
+    <button class="tool-btn" data-tool="intern"><span class="color-dot" style="background: var(--quota-intern);"></span> Internships (7h)</button>
+    <button class="tool-btn" data-tool="hw"><span class="color-dot" style="background: var(--quota-hw);"></span> Homework (6h)</button>
+    <button class="tool-btn" data-tool="work"><span class="color-dot" style="background: var(--work-color);"></span> Work</button>
+    <button class="tool-btn" data-tool="personal"><span class="color-dot" style="background: var(--personal-color);"></span> Personal</button>
+    <button class="tool-btn" data-tool="erase"><span class="color-dot" style="background: #64748b; border: 1px solid #fff;"></span> Eraser</button>
+  </div>
 
-    const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-    const START_HOUR = 7, END_HOUR = 24;
-    const STORAGE_KEY = "fall_schedule_planner_v3", DATES_STORAGE_KEY = "fall_schedule_dates_v3";
+  <div class="day-tabs" id="dayTabs"></div>
+  <div class="schedule-wrapper"><div class="schedule-grid" id="scheduleGrid"></div></div>
+</div>
 
-    const CATEGORY_META = {
-      capstone: { label: "Capstone Work", className: "cat-capstone" },
-      intern:   { label: "Internship Apps", className: "cat-intern" },
-      hw:       { label: "Homework / Study", className: "cat-hw" },
-      work:     { label: "Work", className: "cat-work" },
-      personal: { label: "Personal", className: "cat-personal" }
-    };
+<script>
+  const SITE_PIN = "6095";
+  const AUTH_SESSION_KEY = "fall_schedule_unlocked_v3";
+  const STORAGE_KEY = "fall_schedule_planner_v3", DATES_STORAGE_KEY = "fall_schedule_dates_v3";
 
-    const FIXED_EVENTS = [
-      { days: ["Mon", "Wed", "Fri"], start: "09:30", end: "10:30", title: "Signals & Systems", type: "cat-class" },
-      { days: ["Mon", "Wed", "Fri"], start: "10:45", end: "11:45", title: "Multi Calculus", type: "cat-class" },
-      { days: ["Mon", "Wed", "Fri"], start: "13:15", end: "14:15", title: "Machine Design", type: "cat-class" },
-      { days: ["Tue", "Thu"], start: "12:15", end: "13:45", title: "Dynamics", type: "cat-class" },
-      { days: ["Wed"], start: "14:30", end: "17:30", title: "Capstone Design", type: "cat-capstone-fixed" },
-      { days: ["Mon"], start: "19:15", end: "20:15", title: "Capstone Meeting", type: "cat-capstone-fixed" },
-      { days: ["Tue"], start: "20:00", end: "22:00", title: "Gym w/ Eric (Back/Bi)", type: "cat-gym" },
-      { days: ["Wed"], start: "20:00", end: "22:00", title: "Gym w/ Eric (Legs)", type: "cat-gym" },
-      { days: ["Sat"], start: "08:30", end: "10:30", title: "Gym w/ Eric (Push)", type: "cat-gym" }
-    ];
+  const store = {
+    get(k, s = localStorage) { try { return s.getItem(k); } catch (e) { return null; } },
+    set(k, v, s = localStorage) { try { s.setItem(k, v); } catch (e) {} },
+    del(k, s = localStorage) { try { s.removeItem(k); } catch (e) {} }
+  };
 
-    function timeToMinutes(t) { const [h, m] = t.split(":").map(Number); return h * 60 + m; }
+  let isUnlocked = store.get(AUTH_SESSION_KEY, sessionStorage) === "true";
+  let enteredPin = "";
 
-    /* === STATE_START === */
-    const DEFAULT_DATES = {"Mon":"10/12","Tue":"10/13","Wed":"10/14","Thu":"10/15","Fri":"10/16","Sat":"10/17","Sun":"10/18"};
-    const DEFAULT_SCHEDULE = {"Mon_11:45":"hw","Mon_12:00":"hw","Mon_12:15":"hw","Mon_12:30":"hw","Mon_12:45":"hw","Mon_13:00":"hw","Mon_14:15":"capstone","Mon_14:30":"capstone","Mon_14:45":"capstone","Mon_15:00":"capstone","Mon_15:15":"capstone","Mon_15:30":"capstone","Mon_15:45":"capstone","Mon_16:00":"capstone","Mon_16:15":"capstone","Mon_16:30":"capstone","Mon_16:45":"capstone","Mon_17:00":"capstone","Mon_17:15":"capstone","Mon_17:30":"capstone","Mon_17:45":"capstone","Mon_18:00":"capstone","Mon_18:15":"capstone","Mon_18:30":"capstone","Mon_18:45":"capstone","Mon_19:00":"capstone","Wed_11:45":"personal","Wed_12:00":"personal","Wed_12:15":"capstone","Wed_12:30":"capstone","Wed_12:45":"capstone","Wed_13:00":"capstone","Wed_18:00":"intern","Wed_18:15":"intern","Wed_18:30":"intern","Wed_18:45":"intern","Wed_19:00":"personal","Wed_19:15":"personal","Wed_19:30":"personal","Wed_19:45":"personal","Wed_22:00":"hw","Wed_22:15":"hw","Wed_22:30":"hw","Wed_22:45":"hw","Wed_23:00":"personal","Wed_23:15":"personal","Wed_23:30":"hw","Wed_23:45":"hw","Thu_08:30":"capstone","Thu_08:45":"capstone","Thu_09:00":"capstone","Thu_09:15":"capstone","Thu_09:30":"capstone","Thu_09:45":"capstone","Thu_10:00":"capstone","Thu_10:15":"capstone","Thu_10:30":"capstone","Thu_10:45":"capstone","Thu_11:00":"capstone","Thu_11:15":"capstone","Thu_11:30":"capstone","Thu_11:45":"capstone","Thu_12:00":"capstone","Thu_13:45":"personal","Thu_14:00":"personal","Thu_14:15":"hw","Thu_14:30":"hw","Thu_14:45":"hw","Thu_15:00":"hw","Thu_15:15":"intern","Thu_15:30":"intern","Thu_15:45":"intern","Thu_16:00":"work","Thu_16:15":"work","Thu_16:30":"work","Thu_16:45":"work","Thu_17:00":"work","Thu_17:15":"work","Thu_17:30":"work","Thu_17:45":"work","Thu_18:00":"work","Thu_18:15":"work","Thu_18:30":"work","Thu_18:45":"work","Thu_19:00":"work","Thu_19:15":"work","Thu_19:30":"work","Thu_19:45":"work","Thu_20:00":"work","Thu_20:15":"work","Thu_20:30":"personal","Thu_20:45":"personal","Thu_21:00":"capstone","Thu_21:15":"capstone","Thu_21:30":"capstone","Thu_21:45":"capstone","Thu_22:00":"capstone","Thu_22:15":"capstone","Thu_22:30":"capstone","Thu_22:45":"capstone","Thu_23:00":"intern","Thu_23:15":"intern","Thu_23:30":"intern","Thu_23:45":"intern","Fri_11:45":"personal","Fri_12:00":"personal","Fri_12:15":"intern","Fri_12:30":"intern","Fri_12:45":"intern","Fri_13:00":"intern","Fri_14:15":"personal","Fri_14:30":"personal","Fri_14:45":"personal","Fri_15:00":"personal","Fri_15:15":"personal","Fri_15:30":"personal","Fri_15:45":"personal","Fri_16:00":"personal","Fri_16:15":"personal","Fri_16:30":"personal","Fri_16:45":"personal","Fri_17:00":"work","Fri_17:15":"work","Fri_17:30":"work","Fri_17:45":"work","Fri_18:00":"work","Fri_18:15":"work","Fri_18:30":"work","Fri_18:45":"work","Fri_19:00":"work","Fri_19:15":"work","Fri_19:30":"work","Fri_19:45":"work","Fri_20:00":"work","Fri_20:15":"work","Fri_20:30":"work","Fri_20:45":"work","Fri_21:30":"intern","Fri_21:45":"intern","Fri_22:00":"intern","Fri_22:15":"intern","Fri_22:30":"personal","Fri_22:45":"personal","Fri_23:00":"hw","Fri_23:15":"hw","Fri_23:30":"hw","Fri_23:45":"hw","Sat_10:30":"hw","Sat_10:45":"hw","Sat_11:00":"hw","Sat_11:15":"hw","Sat_11:30":"intern","Sat_11:45":"intern","Sat_12:00":"intern","Sat_12:15":"intern","Sat_12:30":"work","Sat_12:45":"work","Sat_13:00":"work","Sat_13:15":"work","Sat_13:30":"work","Sat_13:45":"work","Sat_14:00":"work","Sat_14:15":"work","Sat_14:30":"work","Sat_14:45":"work","Sat_15:00":"work","Sat_15:15":"work","Sat_15:30":"work","Sat_15:45":"work","Sat_16:00":"work","Sat_16:15":"work","Sat_16:30":"work","Sat_16:45":"work","Sat_17:00":"work","Sat_17:15":"work","Sat_17:30":"work","Sat_17:45":"work","Sat_18:00":"work","Sat_18:15":"work","Sat_18:30":"work","Sat_18:45":"work","Sat_19:00":"work","Sat_19:15":"work","Sat_19:30":"work","Sat_19:45":"work","Sat_20:00":"work","Sat_20:15":"work","Sat_20:30":"work","Sat_20:45":"work","Sat_21:00":"work","Sat_21:15":"work","Sat_22:00":"hw","Sat_22:15":"hw","Sat_22:30":"hw","Sat_22:45":"hw","Sat_23:00":"hw","Sat_23:15":"hw","Sat_23:30":"hw","Sat_23:45":"hw","Sun_08:00":"personal","Sun_08:15":"personal","Sun_08:30":"personal","Sun_08:45":"personal","Sun_09:00":"personal","Sun_09:15":"personal","Sun_09:30":"personal","Sun_09:45":"personal","Sun_10:00":"personal","Sun_10:15":"personal","Sun_10:30":"personal","Sun_10:45":"personal","Sun_11:00":"personal","Sun_11:15":"personal","Sun_11:30":"personal","Sun_11:45":"personal","Sun_12:00":"personal","Sun_12:15":"personal","Sun_12:30":"personal","Sun_12:45":"personal","Sun_13:00":"personal","Sun_13:15":"personal","Sun_13:30":"personal","Sun_13:45":"personal","Sun_17:00":"work","Sun_17:15":"work","Sun_17:30":"work","Sun_17:45":"work","Sun_18:00":"work","Sun_18:15":"work","Sun_18:30":"work","Sun_18:45":"work","Sun_19:00":"work","Sun_19:15":"work","Sun_19:30":"work","Sun_19:45":"work","Sun_20:00":"work","Sun_20:15":"work","Sun_20:30":"work","Sun_20:45":"work","Sun_21:00":"work","Sun_21:15":"work","Sun_22:00":"hw","Sun_22:15":"hw","Sun_22:30":"hw","Sun_22:45":"hw","Sun_23:00":"hw","Sun_23:15":"hw","Sun_23:30":"hw","Sun_23:45":"hw"};
-    /* === STATE_END === */
+  const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const START_HOUR = 7, END_HOUR = 24;
 
-    /* PIN Lock Logic */
-    function syncPinOverlay() {
-      const overlay = document.getElementById("pinOverlay");
-      if (isUnlocked) overlay.classList.add("hidden");
-      else overlay.classList.remove("hidden");
+  const CATEGORY_META = {
+    capstone: { label: "Capstone Work", className: "cat-capstone" },
+    intern:   { label: "Internship Apps", className: "cat-intern" },
+    hw:       { label: "Homework / Study", className: "cat-hw" },
+    work:     { label: "Work", className: "cat-work" },
+    personal: { label: "Personal", className: "cat-personal" }
+  };
+
+  const FIXED_EVENTS = [
+    { days: ["Mon", "Wed", "Fri"], start: "09:30", end: "10:30", title: "Signals & Systems", type: "cat-class" },
+    { days: ["Mon", "Wed", "Fri"], start: "10:45", end: "11:45", title: "Multi Calculus", type: "cat-class" },
+    { days: ["Mon", "Wed", "Fri"], start: "13:15", end: "14:15", title: "Machine Design", type: "cat-class" },
+    { days: ["Tue", "Thu"], start: "12:15", end: "13:45", title: "Dynamics", type: "cat-class" },
+    { days: ["Wed"], start: "14:30", end: "17:30", title: "Capstone Design", type: "cat-capstone-fixed" },
+    { days: ["Mon"], start: "19:15", end: "20:15", title: "Capstone Meeting", type: "cat-capstone-fixed" },
+    { days: ["Tue"], start: "20:00", end: "22:00", title: "Gym w/ Eric (Back/Bi)", type: "cat-gym" },
+    { days: ["Wed"], start: "20:00", end: "22:00", title: "Gym w/ Eric (Legs)", type: "cat-gym" },
+    { days: ["Sat"], start: "08:30", end: "10:30", title: "Gym w/ Eric (Push)", type: "cat-gym" }
+  ];
+
+  function timeToMinutes(t) { const [h, m] = t.split(":").map(Number); return h * 60 + m; }
+
+  // Template used only by "Restore Default Schedule". Your live schedule lives in the synced store.
+  const DEFAULT_DATES = {"Mon":"10/12","Tue":"10/13","Wed":"10/14","Thu":"10/15","Fri":"10/16","Sat":"10/17","Sun":"10/18"};
+  const DEFAULT_SCHEDULE = {"Mon_11:45":"hw","Mon_12:00":"hw","Mon_12:15":"hw","Mon_12:30":"hw","Mon_12:45":"hw","Mon_13:00":"hw","Mon_14:15":"capstone","Mon_14:30":"capstone","Mon_14:45":"capstone","Mon_15:00":"capstone","Mon_15:15":"capstone","Mon_15:30":"capstone","Mon_15:45":"capstone","Mon_16:00":"capstone","Mon_16:15":"capstone","Mon_16:30":"capstone","Mon_16:45":"capstone","Mon_17:00":"capstone","Mon_17:15":"capstone","Mon_17:30":"capstone","Mon_17:45":"capstone","Mon_18:00":"capstone","Mon_18:15":"capstone","Mon_18:30":"capstone","Mon_18:45":"capstone","Mon_19:00":"capstone","Wed_11:45":"personal","Wed_12:00":"personal","Wed_12:15":"capstone","Wed_12:30":"capstone","Wed_12:45":"capstone","Wed_13:00":"capstone","Wed_18:00":"intern","Wed_18:15":"intern","Wed_18:30":"intern","Wed_18:45":"intern","Wed_19:00":"personal","Wed_19:15":"personal","Wed_19:30":"personal","Wed_19:45":"personal","Wed_22:00":"hw","Wed_22:15":"hw","Wed_22:30":"hw","Wed_22:45":"hw","Wed_23:00":"personal","Wed_23:15":"personal","Wed_23:30":"hw","Wed_23:45":"hw","Thu_08:30":"capstone","Thu_08:45":"capstone","Thu_09:00":"capstone","Thu_09:15":"capstone","Thu_09:30":"capstone","Thu_09:45":"capstone","Thu_10:00":"capstone","Thu_10:15":"capstone","Thu_10:30":"capstone","Thu_10:45":"capstone","Thu_11:00":"capstone","Thu_11:15":"capstone","Thu_11:30":"capstone","Thu_11:45":"capstone","Thu_12:00":"capstone","Thu_13:45":"personal","Thu_14:00":"personal","Thu_14:15":"hw","Thu_14:30":"hw","Thu_14:45":"hw","Thu_15:00":"hw","Thu_15:15":"intern","Thu_15:30":"intern","Thu_15:45":"intern","Thu_16:00":"work","Thu_16:15":"work","Thu_16:30":"work","Thu_16:45":"work","Thu_17:00":"work","Thu_17:15":"work","Thu_17:30":"work","Thu_17:45":"work","Thu_18:00":"work","Thu_18:15":"work","Thu_18:30":"work","Thu_18:45":"work","Thu_19:00":"work","Thu_19:15":"work","Thu_19:30":"work","Thu_19:45":"work","Thu_20:00":"work","Thu_20:15":"work","Thu_20:30":"personal","Thu_20:45":"personal","Thu_21:00":"capstone","Thu_21:15":"capstone","Thu_21:30":"capstone","Thu_21:45":"capstone","Thu_22:00":"capstone","Thu_22:15":"capstone","Thu_22:30":"capstone","Thu_22:45":"capstone","Thu_23:00":"intern","Thu_23:15":"intern","Thu_23:30":"intern","Thu_23:45":"intern","Fri_11:45":"personal","Fri_12:00":"personal","Fri_12:15":"intern","Fri_12:30":"intern","Fri_12:45":"intern","Fri_13:00":"intern","Fri_14:15":"personal","Fri_14:30":"personal","Fri_14:45":"personal","Fri_15:00":"personal","Fri_15:15":"personal","Fri_15:30":"personal","Fri_15:45":"personal","Fri_16:00":"personal","Fri_16:15":"personal","Fri_16:30":"personal","Fri_16:45":"personal","Fri_17:00":"work","Fri_17:15":"work","Fri_17:30":"work","Fri_17:45":"work","Fri_18:00":"work","Fri_18:15":"work","Fri_18:30":"work","Fri_18:45":"work","Fri_19:00":"work","Fri_19:15":"work","Fri_19:30":"work","Fri_19:45":"work","Fri_20:00":"work","Fri_20:15":"work","Fri_20:30":"work","Fri_20:45":"work","Fri_21:30":"intern","Fri_21:45":"intern","Fri_22:00":"intern","Fri_22:15":"intern","Fri_22:30":"personal","Fri_22:45":"personal","Fri_23:00":"hw","Fri_23:15":"hw","Fri_23:30":"hw","Fri_23:45":"hw","Sat_10:30":"hw","Sat_10:45":"hw","Sat_11:00":"hw","Sat_11:15":"hw","Sat_11:30":"intern","Sat_11:45":"intern","Sat_12:00":"intern","Sat_12:15":"intern","Sat_12:30":"work","Sat_12:45":"work","Sat_13:00":"work","Sat_13:15":"work","Sat_13:30":"work","Sat_13:45":"work","Sat_14:00":"work","Sat_14:15":"work","Sat_14:30":"work","Sat_14:45":"work","Sat_15:00":"work","Sat_15:15":"work","Sat_15:30":"work","Sat_15:45":"work","Sat_16:00":"work","Sat_16:15":"work","Sat_16:30":"work","Sat_16:45":"work","Sat_17:00":"work","Sat_17:15":"work","Sat_17:30":"work","Sat_17:45":"work","Sat_18:00":"work","Sat_18:15":"work","Sat_18:30":"work","Sat_18:45":"work","Sat_19:00":"work","Sat_19:15":"work","Sat_19:30":"work","Sat_19:45":"work","Sat_20:00":"work","Sat_20:15":"work","Sat_20:30":"work","Sat_20:45":"work","Sat_21:00":"work","Sat_21:15":"work","Sat_22:00":"hw","Sat_22:15":"hw","Sat_22:30":"hw","Sat_22:45":"hw","Sat_23:00":"hw","Sat_23:15":"hw","Sat_23:30":"hw","Sat_23:45":"hw","Sun_08:00":"personal","Sun_08:15":"personal","Sun_08:30":"personal","Sun_08:45":"personal","Sun_09:00":"personal","Sun_09:15":"personal","Sun_09:30":"personal","Sun_09:45":"personal","Sun_10:00":"personal","Sun_10:15":"personal","Sun_10:30":"personal","Sun_10:45":"personal","Sun_11:00":"personal","Sun_11:15":"personal","Sun_11:30":"personal","Sun_11:45":"personal","Sun_12:00":"personal","Sun_12:15":"personal","Sun_12:30":"personal","Sun_12:45":"personal","Sun_13:00":"personal","Sun_13:15":"personal","Sun_13:30":"personal","Sun_13:45":"personal","Sun_17:00":"work","Sun_17:15":"work","Sun_17:30":"work","Sun_17:45":"work","Sun_18:00":"work","Sun_18:15":"work","Sun_18:30":"work","Sun_18:45":"work","Sun_19:00":"work","Sun_19:15":"work","Sun_19:30":"work","Sun_19:45":"work","Sun_20:00":"work","Sun_20:15":"work","Sun_20:30":"work","Sun_20:45":"work","Sun_21:00":"work","Sun_21:15":"work","Sun_22:00":"hw","Sun_22:15":"hw","Sun_22:30":"hw","Sun_22:45":"hw","Sun_23:00":"hw","Sun_23:15":"hw","Sun_23:30":"hw","Sun_23:45":"hw"};
+
+  /* ---------- State (local cache first, then synced store wins) ---------- */
+  let savedSchedule = { ...DEFAULT_SCHEDULE }, savedDates = { ...DEFAULT_DATES };
+  try {
+    const s = JSON.parse(store.get(STORAGE_KEY) || "null");
+    if (s && typeof s === "object") savedSchedule = s;
+    const d = JSON.parse(store.get(DATES_STORAGE_KEY) || "null");
+    if (d && Object.keys(d).length) savedDates = d;
+  } catch (e) {}
+
+  /* ---------- Cross-device sync via a secret GitHub Gist ---------- */
+  // Your token is stored only in this browser (localStorage). It is never written into this file.
+  const GH_TOKEN_KEY = "fall_schedule_gh_token", GH_GIST_KEY = "fall_schedule_gist_id", UPDATED_KEY = "fall_schedule_updated_at";
+  const GIST_FILE = "fall-schedule.json", GIST_DESC = "Fall Schedule Planner sync data (used by my schedule site, don't delete)";
+  const POLL_MS = 20000;
+
+  let ghToken = store.get(GH_TOKEN_KEY) || "";
+  let gistId = store.get(GH_GIST_KEY) || "";
+  let localUpdatedAt = Number(store.get(UPDATED_KEY) || 0);
+  let pendingTimer = null, writing = false, dirty = false, pulling = false, pollTimer = null;
+
+  function stateJson() { return JSON.stringify({ dates: savedDates, schedule: savedSchedule }); }
+  function connected() { return !!(ghToken && gistId); }
+
+  function setSync(state, text, sub) {
+    const el = document.getElementById("syncStatus");
+    el.dataset.state = state;
+    const t = document.getElementById("syncText");
+    t.textContent = text + " ";
+    if (sub) { const s = document.createElement("small"); s.textContent = sub; t.appendChild(s); }
+  }
+
+  function renderSyncPanel() {
+    document.getElementById("ghSetup").hidden = connected();
+    document.getElementById("ghConnected").hidden = !connected();
+    if (!connected()) setSync("local", "Saved on this device only", "connect GitHub below to sync devices");
+  }
+
+  async function gh(path, opts = {}) {
+    const headers = { Authorization: "Bearer " + ghToken, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" };
+    if (opts.body) headers["Content-Type"] = "application/json";
+    const r = await fetch("https://api.github.com" + path, { ...opts, headers, cache: "no-store" });
+    if (r.status === 401) throw { code: "auth" };
+    if (r.status === 404) throw { code: "missing" };
+    if (!r.ok) throw { code: "http", status: r.status };
+    return r.json();
+  }
+
+  function payload() { return JSON.stringify({ dates: savedDates, schedule: savedSchedule, updatedAt: localUpdatedAt }); }
+
+  function applyRemote(data) {
+    savedDates = { ...(data.dates || {}) };
+    savedSchedule = { ...(data.schedule || {}) };
+    localUpdatedAt = Number(data.updatedAt || 0);
+    store.set(STORAGE_KEY, JSON.stringify(savedSchedule));
+    store.set(DATES_STORAGE_KEY, JSON.stringify(savedDates));
+    store.set(UPDATED_KEY, String(localUpdatedAt));
+    if (!isMouseDown && !document.activeElement?.classList.contains("day-date-input")) { renderDayTabs(); buildGrid(); }
+  }
+
+  function syncError(e) {
+    if (e && e.code === "auth") { setSync("local", "GitHub token rejected", "disconnect and paste a new token"); return; }
+    if (e && e.code === "missing") { setSync("local", "Sync file not found", "disconnect and connect again to recreate it"); return; }
+    setSync("local", "Offline", "changes are saved on this device and will upload when you're back online");
+  }
+
+  async function pull() {
+    if (!connected() || pulling || writing || dirty) return;
+    pulling = true;
+    try {
+      const g = await gh(`/gists/${gistId}`);
+      const f = g.files && g.files[GIST_FILE];
+      if (!f) throw { code: "missing" };
+      let content = f.content;
+      if (f.truncated) content = await (await fetch(f.raw_url, { cache: "no-store" })).text();
+      const data = JSON.parse(content || "{}");
+      const remoteAt = Number(data.updatedAt || 0);
+      if (dirty || writing) return; // user edited while we were fetching; their edit wins
+      if (remoteAt > localUpdatedAt) applyRemote(data);
+      else if (localUpdatedAt > remoteAt) { dirty = true; flush(); return; }
+      setSync("synced", "Synced", "checked " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
+    } catch (e) { syncError(e); }
+    finally { pulling = false; }
+  }
+
+  function persist() {
+    localUpdatedAt = Date.now();
+    store.set(STORAGE_KEY, JSON.stringify(savedSchedule));
+    store.set(DATES_STORAGE_KEY, JSON.stringify(savedDates));
+    store.set(UPDATED_KEY, String(localUpdatedAt));
+    if (!connected()) return;
+    dirty = true;
+    setSync("saving", "Saving…");
+    clearTimeout(pendingTimer);
+    pendingTimer = setTimeout(() => { pendingTimer = null; flush(); }, 1500);
+  }
+
+  async function flush() {
+    if (!connected() || writing || !dirty) return;
+    writing = true; dirty = false;
+    try {
+      await gh(`/gists/${gistId}`, { method: "PATCH", body: JSON.stringify({ files: { [GIST_FILE]: { content: payload() } } }) });
+      setSync("synced", "Synced", "saved " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
+    } catch (e) {
+      dirty = true; syncError(e);
+      clearTimeout(pendingTimer);
+      // Retry later for network trouble; a bad token or missing file waits for you to reconnect.
+      pendingTimer = setTimeout(() => { pendingTimer = null; if (e && (e.code === "auth" || e.code === "missing")) return; flush(); }, 8000 + Math.random() * 4000);
+    } finally {
+      writing = false;
+      if (dirty && !pendingTimer) flush();
     }
+  }
 
-    function updatePinDots(isError = false) {
-      const dots = document.querySelectorAll("#pinDots .pin-dot");
-      dots.forEach((dot, idx) => {
-        dot.classList.toggle("filled", idx < enteredPin.length && !isError);
-        dot.classList.toggle("error", isError);
-        dot.textContent = idx < enteredPin.length ? "●" : "";
-      });
+  async function connectGitHub(token) {
+    ghToken = token.trim();
+    if (!ghToken) { showToast("Paste your GitHub token first.", true); return; }
+    setSync("saving", "Connecting to GitHub…");
+    try {
+      let found = "";
+      for (let page = 1; page <= 10 && !found; page++) {
+        const list = await gh(`/gists?per_page=100&page=${page}`);
+        const hit = list.find(g => g.files && g.files[GIST_FILE]);
+        if (hit) found = hit.id;
+        if (list.length < 100) break;
+      }
+      if (!found) {
+        if (!localUpdatedAt) localUpdatedAt = Date.now();
+        const g = await gh("/gists", { method: "POST", body: JSON.stringify({ description: GIST_DESC, public: false, files: { [GIST_FILE]: { content: payload() } } }) });
+        found = g.id;
+      }
+      gistId = found;
+      store.set(GH_TOKEN_KEY, ghToken);
+      store.set(GH_GIST_KEY, gistId);
+      document.getElementById("ghTokenInput").value = "";
+      renderSyncPanel();
+      await pull();
+      startPolling();
+      showToast("Connected. This device now syncs.");
+    } catch (e) {
+      ghToken = ""; gistId = "";
+      if (e && e.code === "auth") setSync("local", "That token didn't work", "check that it has the gist scope and hasn't expired");
+      else syncError(e);
     }
+  }
 
-    function handlePinKey(key) {
-      if (isUnlocked) return;
-      const errEl = document.getElementById("pinErrorMsg");
-      errEl.textContent = "";
+  function disconnectGitHub() {
+    ghToken = ""; gistId = "";
+    store.del(GH_TOKEN_KEY); store.del(GH_GIST_KEY);
+    clearInterval(pollTimer); pollTimer = null;
+    renderSyncPanel();
+    showToast("This device is disconnected. Your schedule stays saved here.");
+  }
 
-      if (key === "clear") {
-        enteredPin = "";
-        updatePinDots();
-        return;
-      }
-      if (key === "back") {
-        enteredPin = enteredPin.slice(0, -1);
-        updatePinDots();
-        return;
-      }
-      if (/^\d$/.test(key) && enteredPin.length < 4) {
-        enteredPin += key;
-        updatePinDots();
-        if (enteredPin.length === 4) {
-          if (enteredPin === SITE_PIN) {
-            isUnlocked = true;
-            sessionStorage.setItem(AUTH_SESSION_KEY, "true");
-            enteredPin = "";
-            updatePinDots();
-            syncPinOverlay();
-          } else {
-            errEl.textContent = "Incorrect PIN. Try again.";
-            updatePinDots(true);
-            const card = document.getElementById("pinCard");
-            card.classList.remove("shake");
-            void card.offsetWidth;
-            card.classList.add("shake");
-            setTimeout(() => {
-              enteredPin = "";
-              updatePinDots(false);
-            }, 450);
-          }
+  function startPolling() {
+    clearInterval(pollTimer);
+    pollTimer = setInterval(() => { if (document.visibilityState === "visible" && !isMouseDown) pull(); }, POLL_MS);
+  }
+
+  function startSync() {
+    document.getElementById("ghConnectBtn").onclick = () => { if (requireUnlock()) connectGitHub(document.getElementById("ghTokenInput").value); };
+    document.getElementById("ghTokenInput").onkeydown = (e) => { if (e.key === "Enter" && requireUnlock()) connectGitHub(e.target.value); };
+    document.getElementById("ghSyncNowBtn").onclick = () => { if (!requireUnlock()) return; if (dirty) flush(); else pull(); };
+    armButton(document.getElementById("ghDisconnectBtn"), "Tap again to disconnect", disconnectGitHub);
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") pull(); });
+    window.addEventListener("focus", () => pull());
+    window.addEventListener("pagehide", () => { if (dirty) flush(); });
+    renderSyncPanel();
+    if (connected()) { setSync("saving", "Checking for changes…"); pull(); startPolling(); }
+  }
+  /* ---------- PIN lock ---------- */
+  function syncPinOverlay() { document.getElementById("pinOverlay").hidden = isUnlocked; }
+  function updatePinDots(isError = false) {
+    document.querySelectorAll("#pinDots .pin-dot").forEach((dot, idx) => {
+      dot.classList.toggle("filled", idx < enteredPin.length && !isError);
+      dot.classList.toggle("error", isError);
+      dot.textContent = idx < enteredPin.length ? "●" : "";
+    });
+  }
+  function handlePinKey(key) {
+    if (isUnlocked) return;
+    const errEl = document.getElementById("pinErrorMsg");
+    errEl.textContent = "";
+    if (key === "clear") { enteredPin = ""; updatePinDots(); return; }
+    if (key === "back") { enteredPin = enteredPin.slice(0, -1); updatePinDots(); return; }
+    if (/^\d$/.test(key) && enteredPin.length < 4) {
+      enteredPin += key; updatePinDots();
+      if (enteredPin.length === 4) {
+        if (enteredPin === SITE_PIN) {
+          isUnlocked = true; store.set(AUTH_SESSION_KEY, "true", sessionStorage);
+          enteredPin = ""; updatePinDots(); syncPinOverlay();
+        } else {
+          errEl.textContent = "Incorrect PIN. Try again.";
+          updatePinDots(true);
+          const card = document.getElementById("pinCard");
+          card.classList.remove("shake"); void card.offsetWidth; card.classList.add("shake");
+          setTimeout(() => { enteredPin = ""; updatePinDots(false); }, 450);
         }
       }
     }
+  }
+  function requireUnlock() { if (!isUnlocked) { syncPinOverlay(); return false; } return true; }
+  document.querySelectorAll(".pin-key").forEach(btn => { btn.onclick = () => handlePinKey(btn.dataset.key); });
+  window.addEventListener("keydown", (e) => {
+    if (isUnlocked) return;
+    if (e.key >= "0" && e.key <= "9") handlePinKey(e.key);
+    else if (e.key === "Backspace") handlePinKey("back");
+    else if (e.key === "Escape") handlePinKey("clear");
+  });
+  document.getElementById("lockSiteBtn").onclick = () => {
+    isUnlocked = false; enteredPin = ""; store.del(AUTH_SESSION_KEY, sessionStorage);
+    updatePinDots(); syncPinOverlay();
+  };
 
-    function requireUnlock() {
-      if (!isUnlocked) {
-        syncPinOverlay();
-        return false;
-      }
-      return true;
+  /* ---------- Grid ---------- */
+  let currentTool = "capstone", isMouseDown = false;
+  let activeDayFilter = window.innerWidth <= 680 ? DAYS[(new Date().getDay() + 6) % 7] : "ALL";
+
+  function renderDayTabs() {
+    const c = document.getElementById("dayTabs");
+    c.innerHTML = "";
+    [["ALL", "Full Week", "All 7 Days"], ...DAYS.map(d => [d, d, savedDates[d] || ""])].forEach(([key, title, sub]) => {
+      const b = document.createElement("button");
+      b.className = "day-tab" + (activeDayFilter === key ? " active" : "");
+      b.innerHTML = `<span>${title}</span><span class="tab-date"></span>`;
+      b.querySelector(".tab-date").textContent = sub;
+      b.onclick = () => { activeDayFilter = key; renderDayTabs(); buildGrid(); };
+      c.appendChild(b);
+    });
+  }
+
+  function formatTime12(hour, minute) {
+    if (minute === 0) {
+      const p = (hour === 24 || hour === 0) ? "AM" : (hour >= 12 ? "PM" : "AM");
+      return `${hour % 12 === 0 ? 12 : hour % 12}:00 ${p}`;
     }
+    if (hour === 23 && minute === 45) return "11:45 - 12 AM";
+    return `:${String(minute).padStart(2, "0")}`;
+  }
 
-    document.querySelectorAll(".pin-key").forEach(btn => {
-      btn.onclick = () => handlePinKey(btn.dataset.key);
+  function getFixedEvent(day, slotMin) {
+    for (const ev of FIXED_EVENTS) {
+      if (!ev.days.includes(day)) continue;
+      const s = timeToMinutes(ev.start), e = timeToMinutes(ev.end);
+      if (slotMin >= s && slotMin < e) return { ...ev, isStart: slotMin === s };
+    }
+    return null;
+  }
+
+  function buildGrid() {
+    const grid = document.getElementById("scheduleGrid");
+    grid.innerHTML = "";
+    const visibleDays = activeDayFilter === "ALL" ? DAYS : [activeDayFilter];
+    grid.style.gridTemplateColumns = `82px repeat(${visibleDays.length}, minmax(0, 1fr))`;
+
+    const th = document.createElement("div");
+    th.className = "grid-header";
+    th.innerHTML = `<span>Time</span><span style="font-size:0.68rem;color:var(--muted);">Date</span>`;
+    grid.appendChild(th);
+
+    visibleDays.forEach(day => {
+      const dh = document.createElement("div");
+      dh.className = "grid-header";
+      dh.innerHTML = `<span>${day}</span>`;
+      const inp = document.createElement("input");
+      inp.type = "text"; inp.className = "day-date-input"; inp.id = "date-" + day;
+      inp.value = savedDates[day] || ""; inp.placeholder = "MM/DD";
+      inp.oninput = (e) => {
+        if (!requireUnlock()) { e.target.value = savedDates[day] || ""; return; }
+        savedDates[day] = e.target.value;
+        persist(); renderDayTabs();
+      };
+      dh.appendChild(inp);
+      grid.appendChild(dh);
     });
 
-    window.addEventListener("keydown", (e) => {
-      if (isUnlocked) return;
-      if (e.key >= "0" && e.key <= "9") handlePinKey(e.key);
-      else if (e.key === "Backspace") handlePinKey("back");
-      else if (e.key === "Escape") handlePinKey("clear");
-    });
+    for (let h = START_HOUR; h < END_HOUR; h++) {
+      for (let m = 0; m < 60; m += 15) {
+        const slotMin = h * 60 + m;
+        const tKey = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+        const tc = document.createElement("div");
+        tc.className = "time-label" + (m === 0 ? " hour-mark" : "");
+        tc.textContent = formatTime12(h, m);
+        grid.appendChild(tc);
 
-    document.getElementById("lockSiteBtn").onclick = () => {
-      isUnlocked = false;
-      enteredPin = "";
-      sessionStorage.removeItem(AUTH_SESSION_KEY);
-      updatePinDots();
-      syncPinOverlay();
-    };
-
-    let currentTool = "capstone", isMouseDown = false;
-    let savedSchedule = { ...DEFAULT_SCHEDULE }, savedDates = { ...DEFAULT_DATES };
-
-    try {
-      const s = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-      if (s && Object.keys(s).length > 0) savedSchedule = s;
-      const d = JSON.parse(localStorage.getItem(DATES_STORAGE_KEY) || "null");
-      if (d && Object.keys(d).length > 0) savedDates = d;
-    } catch (e) {}
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedSchedule));
-    localStorage.setItem(DATES_STORAGE_KEY, JSON.stringify(savedDates));
-
-    let activeDayFilter = window.innerWidth <= 680 ? (DAYS[(new Date().getDay() + 6) % 7] || "Tue") : "ALL";
-
-    function renderDayTabs() {
-      const c = document.getElementById("dayTabs");
-      c.innerHTML = "";
-      [["ALL", "Full Week", "All 7 Days"], ...DAYS.map(d => [d, d, savedDates[d] || ""])].forEach(([key, title, sub]) => {
-        const b = document.createElement("button");
-        b.className = "day-tab" + (activeDayFilter === key ? " active" : "");
-        b.innerHTML = `<span>${title}</span><span class="tab-date">${sub}</span>`;
-        b.onclick = () => { activeDayFilter = key; renderDayTabs(); buildGrid(); };
-        c.appendChild(b);
-      });
-    }
-
-    function formatTime12(hour, minute) {
-      if (minute === 0) {
-        const p = (hour === 24 || hour === 0) ? "AM" : (hour >= 12 ? "PM" : "AM");
-        return `${hour % 12 === 0 ? 12 : hour % 12}:00 ${p}`;
+        visibleDays.forEach(day => {
+          const slotId = `${day}_${tKey}`;
+          const slot = document.createElement("div");
+          slot.className = "slot" + (m === 0 ? " hour-row" : "");
+          slot.dataset.slotId = slotId;
+          const fixed = getFixedEvent(day, slotMin);
+          if (fixed) {
+            slot.classList.add("locked", fixed.type);
+            if (fixed.isStart) slot.textContent = fixed.title;
+          } else {
+            const cat = savedSchedule[slotId];
+            if (cat && CATEGORY_META[cat]) { slot.classList.add(CATEGORY_META[cat].className); slot.dataset.category = cat; }
+            slot.onmousedown = (e) => { if (e.button === 0 && requireUnlock()) { isMouseDown = true; applyTool(slot); } };
+            slot.onmouseenter = () => { if (isMouseDown && isUnlocked) applyTool(slot); };
+            slot.onclick = () => { if (requireUnlock()) applyTool(slot); }; // taps on phones
+          }
+          grid.appendChild(slot);
+        });
       }
-      if (hour === 23 && minute === 45) return "11:45 - 12 AM";
-      return `:${String(minute).padStart(2, "0")}`;
     }
+    updateLabelsAndQuotas();
+  }
 
-    function getFixedEvent(day, slotMin) {
-      for (const ev of FIXED_EVENTS) {
-        if (!ev.days.includes(day)) continue;
-        const s = timeToMinutes(ev.start), e = timeToMinutes(ev.end);
-        if (slotMin >= s && slotMin < e) return { ...ev, isStart: slotMin === s };
-      }
-      return null;
-    }
+  function applyTool(slot) {
+    if (!isUnlocked || slot.classList.contains("locked")) return;
+    const id = slot.dataset.slotId;
+    const before = savedSchedule[id];
+    if (currentTool === "erase") { if (!before) return; delete savedSchedule[id]; }
+    else { if (before === currentTool) return; savedSchedule[id] = currentTool; }
+    Object.values(CATEGORY_META).forEach(m => slot.classList.remove(m.className));
+    delete slot.dataset.category;
+    if (currentTool !== "erase") { slot.classList.add(CATEGORY_META[currentTool].className); slot.dataset.category = currentTool; }
+    else slot.textContent = "";
+    persist();
+    updateLabelsAndQuotas();
+  }
 
-    function buildGrid() {
-      const grid = document.getElementById("scheduleGrid");
-      grid.innerHTML = "";
-      const visibleDays = activeDayFilter === "ALL" ? DAYS : [activeDayFilter];
-      grid.style.gridTemplateColumns = `82px repeat(${visibleDays.length}, minmax(0, 1fr))`;
-
-      const th = document.createElement("div");
-      th.className = "grid-header";
-      th.innerHTML = `<span>Time</span><span style="font-size:0.68rem;color:var(--muted);">Date</span>`;
-      grid.appendChild(th);
-
-      visibleDays.forEach(day => {
-        const dh = document.createElement("div");
-        dh.className = "grid-header";
-        dh.innerHTML = `<span>${day}</span>`;
-        const inp = document.createElement("input");
-        inp.type = "text"; inp.className = "day-date-input";
-        inp.value = savedDates[day] || ""; inp.placeholder = "MM/DD";
-        inp.oninput = (e) => {
-          if (!requireUnlock()) { e.target.value = savedDates[day] || ""; return; }
-          savedDates[day] = e.target.value;
-          localStorage.setItem(DATES_STORAGE_KEY, JSON.stringify(savedDates));
-          renderDayTabs();
-        };
-        dh.appendChild(inp);
-        grid.appendChild(dh);
-      });
-
+  function updateLabelsAndQuotas() {
+    const visibleDays = activeDayFilter === "ALL" ? DAYS : [activeDayFilter];
+    visibleDays.forEach(day => {
+      let prev = null;
       for (let h = START_HOUR; h < END_HOUR; h++) {
         for (let m = 0; m < 60; m += 15) {
-          const slotMin = h * 60 + m;
-          const tKey = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-          const tc = document.createElement("div");
-          tc.className = "time-label" + (m === 0 ? " hour-mark" : "");
-          tc.textContent = formatTime12(h, m);
-          grid.appendChild(tc);
-
-          visibleDays.forEach(day => {
-            const slotId = `${day}_${tKey}`;
-            const slot = document.createElement("div");
-            slot.className = "slot" + (m === 0 ? " hour-row" : "");
-            slot.dataset.slotId = slotId;
-
-            const fixed = getFixedEvent(day, slotMin);
-            if (fixed) {
-              slot.classList.add("locked", fixed.type);
-              if (fixed.isStart) slot.textContent = fixed.title;
-            } else {
-              const cat = savedSchedule[slotId];
-              if (cat && CATEGORY_META[cat]) {
-                slot.classList.add(CATEGORY_META[cat].className);
-                slot.dataset.category = cat;
-              }
-              slot.onmousedown = (e) => { if (e.button === 0 && requireUnlock()) { isMouseDown = true; applyTool(slot); } };
-              slot.onmouseenter = () => { if (isMouseDown && requireUnlock()) applyTool(slot); };
-            }
-            grid.appendChild(slot);
-          });
+          const id = `${day}_${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+          const slot = document.querySelector(`[data-slot-id="${id}"]`);
+          if (!slot || slot.classList.contains("locked")) { prev = null; continue; }
+          const cat = slot.dataset.category || null;
+          slot.textContent = (cat && cat !== prev) ? CATEGORY_META[cat].label : "";
+          prev = cat;
         }
       }
-      updateLabelsAndQuotas();
-    }
-
-    function applyTool(slot) {
-      if (!requireUnlock() || slot.classList.contains("locked")) return;
-      const id = slot.dataset.slotId;
-      Object.values(CATEGORY_META).forEach(m => slot.classList.remove(m.className));
-      delete slot.dataset.category;
-
-      if (currentTool === "erase") {
-        delete savedSchedule[id];
-        slot.textContent = "";
-      } else {
-        slot.classList.add(CATEGORY_META[currentTool].className);
-        slot.dataset.category = currentTool;
-        savedSchedule[id] = currentTool;
-      }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(savedSchedule));
-      updateLabelsAndQuotas();
-    }
-
-    function updateLabelsAndQuotas() {
-      const visibleDays = activeDayFilter === "ALL" ? DAYS : [activeDayFilter];
-      visibleDays.forEach(day => {
-        let prev = null;
-        for (let h = START_HOUR; h < END_HOUR; h++) {
-          for (let m = 0; m < 60; m += 15) {
-            const id = `${day}_${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-            const slot = document.querySelector(`[data-slot-id="${id}"]`);
-            if (!slot || slot.classList.contains("locked")) { prev = null; continue; }
-            const cat = slot.dataset.category || null;
-            slot.textContent = (cat && cat !== prev) ? CATEGORY_META[cat].label : "";
-            prev = cat;
-          }
-        }
-      });
-
-      const counts = { capstone: 0, intern: 0, hw: 0 };
-      Object.values(savedSchedule).forEach(c => { if (counts[c] !== undefined) counts[c] += 0.25; });
-      const setCard = (hrs, target, tId, bId, sId) => {
-        document.getElementById(tId).textContent = `${hrs.toFixed(2)} / ${target.toFixed(1)} hrs`;
-        document.getElementById(bId).style.width = `${Math.min(100, (hrs / target) * 100)}%`;
-        const rem = target - hrs, el = document.getElementById(sId);
-        el.textContent = rem <= 0 ? `Quota Met! (+${Math.abs(rem).toFixed(2)}h)` : `${rem.toFixed(2)} hrs remaining`;
-        el.style.color = rem <= 0 ? "#4ade80" : "var(--muted)";
-      };
-      setCard(counts.capstone, 9, "capText", "capBar", "capStatus");
-      setCard(counts.intern, 7, "internText", "internBar", "internStatus");
-      setCard(counts.hw, 6, "hwText", "hwBar", "hwStatus");
-    }
-
-    function showToast(msg) {
-      const t = document.getElementById("toastMsg");
-      t.textContent = msg; t.style.display = "inline";
-      setTimeout(() => t.style.display = "none", 3000);
-    }
-
-    document.getElementById("copyJsonBtn").onclick = () => {
-      if (!requireUnlock()) return;
-      const payload = JSON.stringify({ dates: savedDates, schedule: savedSchedule });
-      navigator.clipboard.writeText(payload).then(() => {
-        document.getElementById("importCodeInput").value = payload;
-        showToast("Save Code copied! ✓");
-      });
-    };
-
-    document.getElementById("copyHtmlBtn").onclick = () => {
-      if (!requireUnlock()) return;
-      const clone = document.documentElement.cloneNode(true);
-      const cloneOverlay = clone.querySelector("#pinOverlay");
-      if (cloneOverlay) cloneOverlay.classList.remove("hidden");
-      const cloneToast = clone.querySelector("#toastMsg");
-      if (cloneToast) cloneToast.style.display = "none";
-
-      const startTag = "/* === STATE_" + "START === */";
-      const endTag = "/* === STATE_" + "END === */";
-      const src = "<!DOCTYPE html>\n" + clone.outerHTML;
-      const sIdx = src.indexOf(startTag), eIdx = src.indexOf(endTag);
-      if (sIdx !== -1 && eIdx !== -1) {
-        const baked = `${startTag}\n    const DEFAULT_DATES = ${JSON.stringify(savedDates)};\n    const DEFAULT_SCHEDULE = ${JSON.stringify(savedSchedule)};\n    `;
-        const updatedHtml = src.slice(0, sIdx) + baked + src.slice(eIdx);
-        navigator.clipboard.writeText(updatedHtml).then(() => showToast("Full HTML copied (with PIN lock active)! ✓"));
-      }
-    };
-
-    document.getElementById("loadJsonBtn").onclick = () => {
-      if (!requireUnlock()) return;
-      try {
-        const parsed = JSON.parse(document.getElementById("importCodeInput").value.trim());
-        if (parsed.schedule) savedSchedule = parsed.schedule;
-        if (parsed.dates) savedDates = parsed.dates;
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(savedSchedule));
-        localStorage.setItem(DATES_STORAGE_KEY, JSON.stringify(savedDates));
-        renderDayTabs(); buildGrid(); showToast("Schedule loaded! ✓");
-      } catch (e) { alert("Invalid Save Code JSON."); }
-    };
-
-    document.getElementById("weekStartPicker").onchange = (e) => {
-      if (!requireUnlock() || !e.target.value) return;
-      const [y, m, d] = e.target.value.split("-").map(Number);
-      const base = new Date(y, m - 1, d);
-      DAYS.forEach((day, i) => {
-        const cur = new Date(base); cur.setDate(base.getDate() + i);
-        savedDates[day] = `${cur.getMonth() + 1}/${cur.getDate()}`;
-      });
-      localStorage.setItem(DATES_STORAGE_KEY, JSON.stringify(savedDates));
-      renderDayTabs(); buildGrid(); showToast("Week dates updated! ✓");
-    };
-
-    document.getElementById("restoreDefaultBtn").onclick = () => {
-      if (!requireUnlock()) return;
-      if (confirm("Restore the default baked-in schedule?")) {
-        savedSchedule = { ...DEFAULT_SCHEDULE }; savedDates = { ...DEFAULT_DATES };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(savedSchedule));
-        localStorage.setItem(DATES_STORAGE_KEY, JSON.stringify(savedDates));
-        renderDayTabs(); buildGrid(); showToast("Restored! ✓");
-      }
-    };
-
-    document.getElementById("clearFlexBtn").onclick = () => {
-      if (!requireUnlock()) return;
-      if (confirm("Clear all flexible blocks?")) {
-        savedSchedule = {}; localStorage.setItem(STORAGE_KEY, "{}"); buildGrid();
-      }
-    };
-
-    window.onmouseup = () => isMouseDown = false;
-    document.querySelectorAll(".tool-btn").forEach(btn => {
-      btn.onclick = () => {
-        if (!requireUnlock()) return;
-        document.querySelectorAll(".tool-btn").forEach(b => b.classList.remove("active"));
-        btn.classList.add("active"); currentTool = btn.dataset.tool;
-      };
     });
+    const counts = { capstone: 0, intern: 0, hw: 0 };
+    Object.values(savedSchedule).forEach(c => { if (counts[c] !== undefined) counts[c] += 0.25; });
+    const setCard = (hrs, target, tId, bId, sId) => {
+      document.getElementById(tId).textContent = `${hrs.toFixed(2)} / ${target.toFixed(1)} hrs`;
+      document.getElementById(bId).style.width = `${Math.min(100, (hrs / target) * 100)}%`;
+      const rem = target - hrs, el = document.getElementById(sId);
+      el.textContent = rem <= 0 ? `Quota Met! (+${Math.abs(rem).toFixed(2)}h)` : `${rem.toFixed(2)} hrs remaining`;
+      el.style.color = rem <= 0 ? "var(--ok)" : "var(--muted)";
+    };
+    setCard(counts.capstone, 9, "capText", "capBar", "capStatus");
+    setCard(counts.intern, 7, "internText", "internBar", "internStatus");
+    setCard(counts.hw, 6, "hwText", "hwBar", "hwStatus");
+  }
 
-    syncPinOverlay();
-    renderDayTabs();
-    buildGrid();
-  </script>
+  let toastTimer = null;
+  function showToast(msg, isErr) {
+    const t = document.getElementById("toastMsg");
+    t.textContent = msg; t.style.color = isErr ? "var(--bad)" : "var(--ok)"; t.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.hidden = true, 3000);
+  }
+
+  // Two-tap confirm (browser confirm() dialogs don't work here)
+  function armButton(btn, label, action) {
+    const original = btn.textContent;
+    let armed = false, timer = null;
+    btn.onclick = () => {
+      if (!requireUnlock()) return;
+      if (!armed) {
+        armed = true; btn.classList.add("armed"); btn.textContent = label;
+        timer = setTimeout(() => { armed = false; btn.classList.remove("armed"); btn.textContent = original; }, 3000);
+        return;
+      }
+      clearTimeout(timer); armed = false; btn.classList.remove("armed"); btn.textContent = original;
+      action();
+    };
+  }
+
+  document.getElementById("copyJsonBtn").onclick = () => {
+    if (!requireUnlock()) return;
+    const payload = stateJson();
+    const inp = document.getElementById("importCodeInput");
+    inp.value = payload;
+    try {
+      navigator.clipboard.writeText(payload).then(() => showToast("Save Code copied"), () => { inp.select(); showToast("Selected — press Ctrl/Cmd+C to copy"); });
+    } catch (e) { inp.select(); showToast("Selected — press Ctrl/Cmd+C to copy"); }
+  };
+
+  document.getElementById("loadJsonBtn").onclick = () => {
+    if (!requireUnlock()) return;
+    try {
+      const parsed = JSON.parse(document.getElementById("importCodeInput").value.trim());
+      if (!parsed || (!parsed.schedule && !parsed.dates)) throw new Error();
+      if (parsed.schedule) savedSchedule = parsed.schedule;
+      if (parsed.dates) savedDates = parsed.dates;
+      persist(); renderDayTabs(); buildGrid(); showToast("Schedule loaded");
+    } catch (e) { showToast("That Save Code isn't valid. Paste the full code and try again.", true); }
+  };
+
+  document.getElementById("weekStartPicker").onchange = (e) => {
+    if (!requireUnlock() || !e.target.value) return;
+    const [y, m, d] = e.target.value.split("-").map(Number);
+    const base = new Date(y, m - 1, d);
+    DAYS.forEach((day, i) => {
+      const cur = new Date(base); cur.setDate(base.getDate() + i);
+      savedDates[day] = `${cur.getMonth() + 1}/${cur.getDate()}`;
+    });
+    persist(); renderDayTabs(); buildGrid(); showToast("Week dates updated");
+  };
+
+  armButton(document.getElementById("restoreDefaultBtn"), "Tap again to restore", () => {
+    savedSchedule = { ...DEFAULT_SCHEDULE }; savedDates = { ...DEFAULT_DATES };
+    persist(); renderDayTabs(); buildGrid(); showToast("Default schedule restored");
+  });
+
+  armButton(document.getElementById("clearFlexBtn"), "Tap again to clear", () => {
+    savedSchedule = {}; persist(); buildGrid(); showToast("Flexible blocks cleared");
+  });
+
+  window.addEventListener("mouseup", () => { isMouseDown = false; });
+  document.querySelectorAll(".tool-btn").forEach(btn => {
+    btn.onclick = () => {
+      if (!requireUnlock()) return;
+      document.querySelectorAll(".tool-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active"); currentTool = btn.dataset.tool;
+    };
+  });
+
+  syncPinOverlay();
+  renderDayTabs();
+  buildGrid();
+  startSync();
+</script>
 </body>
 </html>
