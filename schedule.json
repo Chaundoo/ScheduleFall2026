@@ -1,0 +1,22 @@
+{
+  "v": 1,
+  "updatedAt": 1792542519365,
+  "dates": {
+    "Mon": "10/12",
+    "Tue": "10/13",
+    "Wed": "10/14",
+    "Thu": "10/15",
+    "Fri": "10/16",
+    "Sat": "10/17",
+    "Sun": "10/18"
+  },
+  "days": {
+    "Mon": "...................hhhhhh....cccccccccccccccccccc...................",
+    "Tue": "....................................................................",
+    "Wed": "...................ppcccc...................iiiipppp........hhhhpphh",
+    "Thu": "......ccccccccccccccc......pphhhhiiiwwwwwwwwwwwwwwwwwwppcccccccciiii",
+    "Fri": "...................ppiiii....pppppppppppwwwwwwwwwwwwwwww..iiiipphhhh",
+    "Sat": "..............hhhhiiiiwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww..hhhhhhhh",
+    "Sun": "....pppppppppppppppppppppppp............wwwwwwwwwwwwwwwwww..hhhhhhhh"
+  }
+}
