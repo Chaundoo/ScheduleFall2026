@@ -1,0 +1,82 @@
+name: Publish schedule
+
+# The schedule site opens an issue titled "[schedule] ..." with the new schedule in it.
+# This job checks it, saves schedule.json, and closes the issue.
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: publish-schedule
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    # Only the repo owner's issues can change the schedule.
+    if: startsWith(github.event.issue.title, '[schedule]') && github.event.issue.user.login == github.repository_owner
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check and write schedule.json
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, sys
+          body = os.environ.get("ISSUE_BODY", "")
+          m = re.search(r"```json\s*(\{.*?\})\s*```", body, re.S)
+          if not m:
+              sys.exit("No schedule data found in the issue.")
+          data = json.loads(m.group(1))
+          DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+          SLOTS = 68  # 7:00 AM to midnight in 15-minute blocks
+          days = data.get("days", {})
+          dates = data.get("dates", {})
+          out_days, out_dates = {}, {}
+          for d in DAYS:
+              s = days.get(d, "")
+              if len(s) != SLOTS or any(c not in "cihwp." for c in s):
+                  sys.exit(f"Day {d} has invalid schedule data.")
+              out_days[d] = s
+              v = str(dates.get(d, ""))
+              if len(v) > 12:
+                  sys.exit(f"Date for {d} is too long.")
+              out_dates[d] = v
+          updated = int(data.get("updatedAt", 0))
+          if updated <= 0:
+              sys.exit("Missing updatedAt.")
+          with open("schedule.json", "w") as f:
+              json.dump({"v": 1, "updatedAt": updated, "dates": out_dates, "days": out_days}, f, indent=2)
+              f.write("\n")
+          print("schedule.json written")
+          PY
+
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add schedule.json
+          if git diff --cached --quiet; then
+            echo "Schedule unchanged."
+          else
+            git commit -m "Publish schedule (#${{ github.event.issue.number }})"
+            git pull --rebase
+            git push
+          fi
+
+      - name: Close issue
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue close ${{ github.event.issue.number }} --repo ${{ github.repository }} --comment "Published. Your schedule is live on every device."
+
+      - name: Report a problem
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue close ${{ github.event.issue.number }} --repo ${{ github.repository }} --comment "Couldn't publish this one. Open the Actions tab to see why, then tap Publish to GitHub on the site again."
