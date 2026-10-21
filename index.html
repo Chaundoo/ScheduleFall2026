@@ -119,7 +119,7 @@
   <div class="header">
     <div>
       <h1>Fall Schedule &amp; Quota Tracker (7:00 AM – 12:00 AM)</h1>
-      <p>Changes save automatically. Connect GitHub sync below to see them on every device. Click a date under a day to edit it.</p>
+      <p>Edits save on this device as you paint. Tap Publish to GitHub to send them to your other devices. Click a date under a day to edit it.</p>
     </div>
     <div class="header-actions">
       <button class="action-btn" id="lockSiteBtn">Lock</button>
@@ -130,7 +130,7 @@
 
   <div class="sync-panel">
     <div class="sync-row">
-      <span class="sync-status" id="syncStatus" data-state="connecting"><span class="dot"></span><span id="syncText">Connecting…</span></span>
+      <span class="sync-status" id="syncStatus" data-state="connecting"><span class="dot"></span><span id="syncText">Checking GitHub…</span></span>
       <div class="sync-group">
         <span class="sync-label">Auto-fill week from Monday:</span>
         <input type="date" id="weekStartPicker" class="date-picker-input" value="2026-10-12">
@@ -145,28 +145,13 @@
         <span class="toast-msg" id="toastMsg" hidden></span>
       </div>
     </div>
-    <div class="sync-row" id="ghSetup" hidden>
-      <div class="sync-group" style="width:100%">
-        <span class="sync-label">Sync devices:</span>
-        <input type="password" id="ghTokenInput" class="code-input" placeholder="Paste GitHub token (gist scope only)" autocomplete="off">
-        <button class="action-btn primary" id="ghConnectBtn">Connect this device</button>
-      </div>
-      <details class="help">
-        <summary>How to get a token (once per device, about 1 minute)</summary>
-        <ol>
-          <li>On GitHub, go to Settings → Developer settings → Personal access tokens → <b>Tokens (classic)</b> → Generate new token (classic).</li>
-          <li>Name it "Schedule sync", pick an expiration, and tick <b>only</b> the <code>gist</code> box. Generate it and copy it.</li>
-          <li>Paste it above and tap Connect. The first device creates a secret gist to hold your schedule; every other device you connect with the same token finds it automatically.</li>
-        </ol>
-        <p>The token is stored only in this browser. It is never saved into the site's code, so it's safe to keep the repo public.</p>
-      </details>
-    </div>
-    <div class="sync-row" id="ghConnected" hidden>
-      <span class="sync-label">This device syncs through a secret GitHub gist.</span>
+    <div class="sync-row">
       <div class="sync-group">
-        <button class="action-btn" id="ghSyncNowBtn">Sync now</button>
-        <button class="action-btn danger" id="ghDisconnectBtn">Disconnect this device</button>
+        <button class="action-btn" id="publishBtn">Publish to GitHub</button>
+        <button class="action-btn" id="checkBtn">Check for updates</button>
+        <button class="action-btn danger" id="discardBtn" hidden>Discard my changes</button>
       </div>
+      <span class="sync-label">Publishing opens a pre-filled GitHub issue. Tap Submit there and your other devices get it in about a minute.</span>
     </div>
   </div>
 
@@ -254,19 +239,54 @@
     if (d && Object.keys(d).length) savedDates = d;
   } catch (e) {}
 
-  /* ---------- Cross-device sync via a secret GitHub Gist ---------- */
-  // Your token is stored only in this browser (localStorage). It is never written into this file.
-  const GH_TOKEN_KEY = "fall_schedule_gh_token", GH_GIST_KEY = "fall_schedule_gist_id", UPDATED_KEY = "fall_schedule_updated_at";
-  const GIST_FILE = "fall-schedule.json", GIST_DESC = "Fall Schedule Planner sync data (used by my schedule site, don't delete)";
-  const POLL_MS = 20000;
+  /* ---------- Publish through GitHub (same flow as Card Flipz) ----------
+     Edits save on this device right away. "Publish to GitHub" opens a pre-filled issue on your repo;
+     when you submit it, the "Publish schedule" GitHub job checks it, writes schedule.json, and closes the issue.
+     Every device loads the published schedule.json when it opens the site. */
+  const REPO_OVERRIDE = ""; // Only needed if auto-detect fails, e.g. "Chaundoo/fall-schedule"
+  const DATA_FILE = "schedule.json";
+  const CODES = { capstone: "c", intern: "i", hw: "h", work: "w", personal: "p" };
+  const FROM_CODE = Object.fromEntries(Object.entries(CODES).map(([k, v]) => [v, k]));
+  const UNPUB_KEY = "fall_schedule_unpublished", BASE_KEY = "fall_schedule_published_at", EDIT_KEY = "fall_schedule_last_edit", PENDING_KEY = "fall_schedule_pending_publish";
+  const SLOT_KEYS = [];
+  for (let h = START_HOUR; h < END_HOUR; h++) for (let m = 0; m < 60; m += 15) SLOT_KEYS.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
 
-  let ghToken = store.get(GH_TOKEN_KEY) || "";
-  let gistId = store.get(GH_GIST_KEY) || "";
-  let localUpdatedAt = Number(store.get(UPDATED_KEY) || 0);
-  let pendingTimer = null, writing = false, dirty = false, pulling = false, pollTimer = null;
+  // A device that already had a schedule saved before this version counts as having unpublished changes until checked.
+  let unpublished = store.get(UNPUB_KEY) === "1" || (store.get(UNPUB_KEY) === null && store.get(STORAGE_KEY) !== null);
+  let publishedAt = Number(store.get(BASE_KEY) || 0);
+  let lastEditAt = Number(store.get(EDIT_KEY) || 0);
+  let pendingAt = Number(store.get(PENDING_KEY) || 0);
+  let waitTimer = null, waitUntil = 0;
 
   function stateJson() { return JSON.stringify({ dates: savedDates, schedule: savedSchedule }); }
-  function connected() { return !!(ghToken && gistId); }
+
+  function detectRepo() {
+    if (REPO_OVERRIDE) return REPO_OVERRIDE;
+    const m = location.hostname.toLowerCase().match(/^([a-z0-9-]+)\.github\.io$/);
+    if (!m) return "";
+    const seg = location.pathname.split("/").filter(Boolean)[0];
+    return `${m[1]}/${seg && !seg.includes(".") ? seg : m[1] + ".github.io"}`;
+  }
+
+  function encodeState(stamp) {
+    const days = {};
+    DAYS.forEach(d => { days[d] = SLOT_KEYS.map(t => CODES[savedSchedule[`${d}_${t}`]] || ".").join(""); });
+    return { v: 1, updatedAt: stamp, dates: savedDates, days };
+  }
+
+  function decodeState(data) {
+    const schedule = {};
+    DAYS.forEach(d => {
+      const s = (data.days || {})[d] || "";
+      SLOT_KEYS.forEach((t, i) => { const cat = FROM_CODE[s[i]]; if (cat) schedule[`${d}_${t}`] = cat; });
+    });
+    return { schedule, dates: { ...(data.dates || {}) } };
+  }
+
+  function sameAs(data) {
+    const mine = encodeState(0);
+    return DAYS.every(d => mine.days[d] === ((data.days || {})[d] || "")) && DAYS.every(d => (savedDates[d] || "") === ((data.dates || {})[d] || ""));
+  }
 
   function setSync(state, text, sub) {
     const el = document.getElementById("syncStatus");
@@ -276,144 +296,125 @@
     if (sub) { const s = document.createElement("small"); s.textContent = sub; t.appendChild(s); }
   }
 
-  function renderSyncPanel() {
-    document.getElementById("ghSetup").hidden = connected();
-    document.getElementById("ghConnected").hidden = !connected();
-    if (!connected()) setSync("local", "Saved on this device only", "connect GitHub below to sync devices");
-  }
-
-  async function gh(path, opts = {}) {
-    const headers = { Authorization: "Bearer " + ghToken, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" };
-    if (opts.body) headers["Content-Type"] = "application/json";
-    const r = await fetch("https://api.github.com" + path, { ...opts, headers, cache: "no-store" });
-    if (r.status === 401) throw { code: "auth" };
-    if (r.status === 404) throw { code: "missing" };
-    if (!r.ok) throw { code: "http", status: r.status };
-    return r.json();
-  }
-
-  function payload() { return JSON.stringify({ dates: savedDates, schedule: savedSchedule, updatedAt: localUpdatedAt }); }
-
-  function applyRemote(data) {
-    savedDates = { ...(data.dates || {}) };
-    savedSchedule = { ...(data.schedule || {}) };
-    localUpdatedAt = Number(data.updatedAt || 0);
-    store.set(STORAGE_KEY, JSON.stringify(savedSchedule));
-    store.set(DATES_STORAGE_KEY, JSON.stringify(savedDates));
-    store.set(UPDATED_KEY, String(localUpdatedAt));
-    if (!isMouseDown && !document.activeElement?.classList.contains("day-date-input")) { renderDayTabs(); buildGrid(); }
-  }
-
-  function syncError(e) {
-    if (e && e.code === "auth") { setSync("local", "GitHub token rejected", "disconnect and paste a new token"); return; }
-    if (e && e.code === "missing") { setSync("local", "Sync file not found", "disconnect and connect again to recreate it"); return; }
-    setSync("local", "Offline", "changes are saved on this device and will upload when you're back online");
-  }
-
-  async function pull() {
-    if (!connected() || pulling || writing || dirty) return;
-    pulling = true;
-    try {
-      const g = await gh(`/gists/${gistId}`);
-      const f = g.files && g.files[GIST_FILE];
-      if (!f) throw { code: "missing" };
-      let content = f.content;
-      if (f.truncated) content = await (await fetch(f.raw_url, { cache: "no-store" })).text();
-      const data = JSON.parse(content || "{}");
-      const remoteAt = Number(data.updatedAt || 0);
-      if (dirty || writing) return; // user edited while we were fetching; their edit wins
-      if (remoteAt > localUpdatedAt) applyRemote(data);
-      else if (localUpdatedAt > remoteAt) { dirty = true; flush(); return; }
-      setSync("synced", "Synced", "checked " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
-    } catch (e) { syncError(e); }
-    finally { pulling = false; }
+  function renderPublishState() {
+    document.getElementById("discardBtn").hidden = !unpublished;
+    document.getElementById("publishBtn").classList.toggle("primary", unpublished);
+    if (waitTimer) return; // "Waiting for GitHub" message owns the status
+    if (unpublished) setSync("saving", "Unpublished changes", "saved on this device only; tap Publish to GitHub to send them to your other devices");
   }
 
   function persist() {
-    localUpdatedAt = Date.now();
+    lastEditAt = Date.now(); unpublished = true;
     store.set(STORAGE_KEY, JSON.stringify(savedSchedule));
     store.set(DATES_STORAGE_KEY, JSON.stringify(savedDates));
-    store.set(UPDATED_KEY, String(localUpdatedAt));
-    if (!connected()) return;
-    dirty = true;
-    setSync("saving", "Saving…");
-    clearTimeout(pendingTimer);
-    pendingTimer = setTimeout(() => { pendingTimer = null; flush(); }, 1500);
+    store.set(EDIT_KEY, String(lastEditAt));
+    store.set(UNPUB_KEY, "1");
+    renderPublishState();
   }
 
-  async function flush() {
-    if (!connected() || writing || !dirty) return;
-    writing = true; dirty = false;
-    try {
-      await gh(`/gists/${gistId}`, { method: "PATCH", body: JSON.stringify({ files: { [GIST_FILE]: { content: payload() } } }) });
-      setSync("synced", "Synced", "saved " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
-    } catch (e) {
-      dirty = true; syncError(e);
-      clearTimeout(pendingTimer);
-      // Retry later for network trouble; a bad token or missing file waits for you to reconnect.
-      pendingTimer = setTimeout(() => { pendingTimer = null; if (e && (e.code === "auth" || e.code === "missing")) return; flush(); }, 8000 + Math.random() * 4000);
-    } finally {
-      writing = false;
-      if (dirty && !pendingTimer) flush();
+  // Returns the published data, null if nothing is published yet, or undefined if it couldn't be reached.
+  async function fetchPublished() {
+    const repo = detectRepo();
+    if (repo) {
+      try {
+        const r = await fetch(`https://api.github.com/repos/${repo}/contents/${DATA_FILE}`, { headers: { Accept: "application/vnd.github.raw+json" }, cache: "no-store" });
+        if (r.status === 404) return null;
+        if (r.ok) return JSON.parse(await r.text());
+      } catch (e) {}
     }
-  }
-
-  async function connectGitHub(token) {
-    ghToken = token.trim();
-    if (!ghToken) { showToast("Paste your GitHub token first.", true); return; }
-    setSync("saving", "Connecting to GitHub…");
     try {
-      let found = "";
-      for (let page = 1; page <= 10 && !found; page++) {
-        const list = await gh(`/gists?per_page=100&page=${page}`);
-        const hit = list.find(g => g.files && g.files[GIST_FILE]);
-        if (hit) found = hit.id;
-        if (list.length < 100) break;
-      }
-      if (!found) {
-        if (!localUpdatedAt) localUpdatedAt = Date.now();
-        const g = await gh("/gists", { method: "POST", body: JSON.stringify({ description: GIST_DESC, public: false, files: { [GIST_FILE]: { content: payload() } } }) });
-        found = g.id;
-      }
-      gistId = found;
-      store.set(GH_TOKEN_KEY, ghToken);
-      store.set(GH_GIST_KEY, gistId);
-      document.getElementById("ghTokenInput").value = "";
-      renderSyncPanel();
-      await pull();
-      startPolling();
-      showToast("Connected. This device now syncs.");
-    } catch (e) {
-      ghToken = ""; gistId = "";
-      if (e && e.code === "auth") setSync("local", "That token didn't work", "check that it has the gist scope and hasn't expired");
-      else syncError(e);
+      const r = await fetch(`${DATA_FILE}?t=${Date.now()}`, { cache: "no-store" });
+      if (r.status === 404) return null;
+      if (r.ok) return await r.json();
+    } catch (e) {}
+    return undefined;
+  }
+
+  function applyPublished(data) {
+    const { schedule, dates } = decodeState(data);
+    savedSchedule = schedule; savedDates = dates;
+    publishedAt = Number(data.updatedAt || 0);
+    unpublished = false;
+    store.set(STORAGE_KEY, JSON.stringify(savedSchedule));
+    store.set(DATES_STORAGE_KEY, JSON.stringify(savedDates));
+    store.set(BASE_KEY, String(publishedAt));
+    store.set(UNPUB_KEY, "0");
+    if (!isMouseDown && !document.activeElement?.classList.contains("day-date-input")) { renderDayTabs(); buildGrid(); }
+  }
+
+  const when = (ms) => new Date(ms).toLocaleString([], { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" });
+
+  async function checkPublished() {
+    const data = await fetchPublished();
+    if (data === undefined) { if (!unpublished) setSync("local", "Offline", "showing the last schedule saved on this device"); renderPublishState(); return; }
+    if (data === null) { setSync("saving", "Nothing published yet", "tap Publish to GitHub to put this schedule on your site"); renderPublishState(); return; }
+    const remoteAt = Number(data.updatedAt || 0);
+    if (pendingAt && remoteAt >= pendingAt) finishWaiting(remoteAt);
+    if (unpublished && sameAs(data)) { unpublished = false; store.set(UNPUB_KEY, "0"); publishedAt = remoteAt; store.set(BASE_KEY, String(remoteAt)); }
+    if (!unpublished) {
+      if (!sameAs(data)) applyPublished(data);
+      else if (publishedAt !== remoteAt) { publishedAt = remoteAt; store.set(BASE_KEY, String(remoteAt)); }
+      setSync("synced", "Up to date", "published " + when(remoteAt));
+    } else if (remoteAt > publishedAt && !waitTimer) {
+      setSync("local", "Another device published a newer schedule", "Publish to GitHub to overwrite it, or Discard my changes to load it");
     }
+    renderPublishState();
   }
 
-  function disconnectGitHub() {
-    ghToken = ""; gistId = "";
-    store.del(GH_TOKEN_KEY); store.del(GH_GIST_KEY);
-    clearInterval(pollTimer); pollTimer = null;
-    renderSyncPanel();
-    showToast("This device is disconnected. Your schedule stays saved here.");
+  function finishWaiting(remoteAt) {
+    clearInterval(waitTimer); waitTimer = null;
+    publishedAt = remoteAt; store.set(BASE_KEY, String(publishedAt));
+    pendingAt = 0; store.del(PENDING_KEY);
+    if (lastEditAt <= remoteAt) { unpublished = false; store.set(UNPUB_KEY, "0"); }
+    showToast("Published. Your other devices will load it next time they open the site.");
   }
 
-  function startPolling() {
-    clearInterval(pollTimer);
-    pollTimer = setInterval(() => { if (document.visibilityState === "visible" && !isMouseDown) pull(); }, POLL_MS);
+  function startWaiting() {
+    clearInterval(waitTimer);
+    waitUntil = Date.now() + 10 * 60 * 1000;
+    setSync("saving", "Waiting for GitHub…", "submit the issue on GitHub; this updates on its own about a minute after");
+    waitTimer = setInterval(() => {
+      if (Date.now() > waitUntil) {
+        clearInterval(waitTimer); waitTimer = null;
+        setSync("local", "Haven't seen it publish yet", "did you tap Submit on GitHub? Check the Actions tab, then tap Publish again if needed");
+        return;
+      }
+      checkPublished();
+    }, 15000);
+  }
+
+  function publishToGitHub() {
+    if (!requireUnlock()) return;
+    const repo = detectRepo();
+    if (!repo) { showToast("Open this from your github.io site to publish.", true); return; }
+    const stamp = Date.now();
+    const data = encodeState(stamp);
+    const title = `[schedule] Update ${when(stamp)}`;
+    const body = "Tap **Submit new issue** to publish this schedule. The Publish schedule job saves it to the site and closes this issue.\n\nDon't edit the block below.\n\n```json\n" + JSON.stringify(data) + "\n```\n";
+    const url = `https://github.com/${repo}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
+    pendingAt = stamp; store.set(PENDING_KEY, String(stamp));
+    startWaiting();
+    const w = window.open(url, "_blank");
+    if (!w) location.href = url;
   }
 
   function startSync() {
-    document.getElementById("ghConnectBtn").onclick = () => { if (requireUnlock()) connectGitHub(document.getElementById("ghTokenInput").value); };
-    document.getElementById("ghTokenInput").onkeydown = (e) => { if (e.key === "Enter" && requireUnlock()) connectGitHub(e.target.value); };
-    document.getElementById("ghSyncNowBtn").onclick = () => { if (!requireUnlock()) return; if (dirty) flush(); else pull(); };
-    armButton(document.getElementById("ghDisconnectBtn"), "Tap again to disconnect", disconnectGitHub);
-    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") pull(); });
-    window.addEventListener("focus", () => pull());
-    window.addEventListener("pagehide", () => { if (dirty) flush(); });
-    renderSyncPanel();
-    if (connected()) { setSync("saving", "Checking for changes…"); pull(); startPolling(); }
+    document.getElementById("publishBtn").onclick = publishToGitHub;
+    document.getElementById("checkBtn").onclick = () => { setSync("saving", "Checking GitHub…"); checkPublished(); };
+    armButton(document.getElementById("discardBtn"), "Tap again to discard", async () => {
+      const data = await fetchPublished();
+      if (!data) { showToast("Couldn't load the published schedule. Check your connection.", true); return; }
+      unpublished = false; applyPublished(data); renderPublishState();
+      setSync("synced", "Up to date", "published " + when(Number(data.updatedAt || 0)));
+    });
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checkPublished(); });
+    if (pendingAt && Date.now() - pendingAt < 10 * 60 * 1000) startWaiting();
+    else if (pendingAt) { pendingAt = 0; store.del(PENDING_KEY); }
+    renderPublishState();
+    setSync("saving", "Checking GitHub…");
+    checkPublished();
   }
+
   /* ---------- PIN lock ---------- */
   function syncPinOverlay() { document.getElementById("pinOverlay").hidden = isUnlocked; }
   function updatePinDots(isError = false) {
