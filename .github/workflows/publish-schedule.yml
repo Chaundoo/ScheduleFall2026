@@ -40,18 +40,27 @@ jobs:
           out_days, out_dates = {}, {}
           for d in DAYS:
               s = days.get(d, "")
-              if len(s) != SLOTS or any(c not in "cihwp." for c in s):
+              if len(s) != SLOTS or any(c not in "cihwpg." for c in s):
                   sys.exit(f"Day {d} has invalid schedule data.")
               out_days[d] = s
               v = str(dates.get(d, ""))
               if len(v) > 12:
                   sys.exit(f"Date for {d} is too long.")
               out_dates[d] = v
+          notes = data.get("notes") or {}
+          if not isinstance(notes, dict) or len(notes) > 300:
+              sys.exit("Notes are invalid.")
+          out_notes = {}
+          for k, v in notes.items():
+              if not re.fullmatch(r"(Mon|Tue|Wed|Thu|Fri|Sat|Sun)_\d\d:\d\d", str(k)) or not isinstance(v, str) or len(v) > 1000:
+                  sys.exit(f"Note {k} is invalid.")
+              if v.strip():
+                  out_notes[k] = v
           updated = int(data.get("updatedAt", 0))
           if updated <= 0:
               sys.exit("Missing updatedAt.")
           with open("schedule.json", "w") as f:
-              json.dump({"v": 1, "updatedAt": updated, "dates": out_dates, "days": out_days}, f, indent=2)
+              json.dump({"v": 1, "updatedAt": updated, "dates": out_dates, "days": out_days, "notes": out_notes}, f, indent=2)
               f.write("\n")
           print("schedule.json written")
           PY
