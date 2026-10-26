@@ -10,7 +10,7 @@
     --bg: #0f172a; --panel: #1e293b; --border: #334155;
     --text: #f8fafc; --muted: #94a3b8;
     --quota-capstone: #8b5cf6; --quota-intern: #10b981;
-    --quota-hw: #f59e0b; --work-color: #06b6d4; --personal-color: #ec4899;
+    --quota-hw: #f59e0b; --work-color: #06b6d4; --personal-color: #ec4899; --gym-color: #ef4444;
     --ok: #4ade80; --warn: #fbbf24; --bad: #f87171;
     color-scheme: dark;
   }
@@ -77,6 +77,22 @@
   .cat-hw { background: rgba(245,158,11,0.88); color: #0f172a; }
   .cat-work { background: rgba(6,182,212,0.85); color: #0f172a; }
   .cat-personal { background: rgba(236,72,153,0.85); color: #fff; }
+  .slot.has-note::after { content: "✎"; margin-left: 5px; font-size: 0.7rem; opacity: 0.9; flex: none; }
+  .slot .label-text { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .slot .note-line { font-weight: 500; font-style: italic; opacity: 0.88; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .note-mode .slot.locked { cursor: pointer; }
+  .note-mode .slot:not(.locked):not([data-category]) { cursor: default; }
+  .tool-hint { font-size: 0.74rem; color: var(--muted); width: 100%; }
+
+  .modal-overlay { position: fixed; inset: 0; z-index: 9000; background: rgba(15,23,42,0.75); display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .modal-card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px; width: 100%; max-width: 440px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); user-select: text; }
+  .modal-card h2 { font-size: 1rem; display: flex; align-items: center; gap: 8px; }
+  .modal-card .modal-sub { font-size: 0.76rem; color: var(--muted); margin: 3px 0 12px; }
+  .modal-card textarea { width: 100%; min-height: 150px; resize: vertical; background: #0f172a; color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 10px; font: inherit; font-size: 0.86rem; line-height: 1.45; }
+  .modal-card textarea:focus { outline: 2px solid #38bdf8; outline-offset: 1px; }
+  .modal-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .modal-foot .counter { font-size: 0.72rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .modal-foot .btns { display: flex; gap: 8px; }
 
   .pin-overlay { position: fixed; inset: 0; z-index: 9999; background: rgba(15,23,42,0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; padding: 16px; }
   .pin-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 24px 22px; width: 100%; max-width: 320px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
@@ -171,6 +187,11 @@
       <div class="progress-track"><div class="progress-fill" id="hwBar" style="background: var(--quota-hw);"></div></div>
       <div class="quota-sub"><span>Target: 6 hrs/wk</span><span id="hwStatus"></span></div>
     </div>
+    <div class="quota-card">
+      <div class="quota-header"><span>Sunday Gym (Chest &amp; Back)</span><span id="gymText">0.00 / 2.0 hrs</span></div>
+      <div class="progress-track"><div class="progress-fill" id="gymBar" style="background: var(--gym-color);"></div></div>
+      <div class="quota-sub"><span>Paint Gym on Sunday</span><span id="gymStatus"></span></div>
+    </div>
   </div>
 
   <div class="toolbar">
@@ -180,11 +201,30 @@
     <button class="tool-btn" data-tool="hw"><span class="color-dot" style="background: var(--quota-hw);"></span> Homework (6h)</button>
     <button class="tool-btn" data-tool="work"><span class="color-dot" style="background: var(--work-color);"></span> Work</button>
     <button class="tool-btn" data-tool="personal"><span class="color-dot" style="background: var(--personal-color);"></span> Personal</button>
+    <button class="tool-btn" data-tool="gym"><span class="color-dot" style="background: var(--gym-color);"></span> Gym w/ Eric</button>
     <button class="tool-btn" data-tool="erase"><span class="color-dot" style="background: #64748b; border: 1px solid #fff;"></span> Eraser</button>
+    <button class="tool-btn" data-tool="note"><span aria-hidden="true">✎</span> Notes</button>
+    <span class="tool-hint" id="toolHint">Tip: pick ✎ Notes, then tap any block to write notes on it.</span>
   </div>
 
   <div class="day-tabs" id="dayTabs"></div>
   <div class="schedule-wrapper"><div class="schedule-grid" id="scheduleGrid"></div></div>
+</div>
+
+<div class="modal-overlay" id="noteModal" hidden role="dialog" aria-modal="true" aria-labelledby="noteTitle">
+  <div class="modal-card">
+    <h2><span class="color-dot" id="noteDot"></span><span id="noteTitle">Note</span></h2>
+    <div class="modal-sub" id="noteSub"></div>
+    <textarea id="noteText" maxlength="600" placeholder="e.g. Ch. 7 problems 1–12, review Laplace tables…"></textarea>
+    <div class="modal-foot">
+      <span class="counter" id="noteCount">0 / 600</span>
+      <div class="btns">
+        <button class="action-btn danger" id="noteDelete">Delete note</button>
+        <button class="action-btn" id="noteCancel">Cancel</button>
+        <button class="action-btn primary" id="noteSave">Save</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -209,8 +249,16 @@
     intern:   { label: "Internship Apps", className: "cat-intern" },
     hw:       { label: "Homework / Study", className: "cat-hw" },
     work:     { label: "Work", className: "cat-work" },
-    personal: { label: "Personal", className: "cat-personal" }
+    personal: { label: "Personal", className: "cat-personal" },
+    gym:      { label: "Gym w/ Eric", className: "cat-gym" }
   };
+  // Weekly lifting split with Eric. Sunday is flexible: paint 2 hrs of Gym on Sunday to hit that quota.
+  const GYM_SPLIT = { Tue: "Back/Bi", Wed: "Chest/Shoulders/Tri", Sat: "Legs", Sun: "Chest & Back" };
+  const SUNDAY_GYM_TARGET = 2;
+  function catLabel(cat, day) {
+    if (cat === "gym" && GYM_SPLIT[day]) return `Gym w/ Eric (${GYM_SPLIT[day]})`;
+    return CATEGORY_META[cat].label;
+  }
 
   const FIXED_EVENTS = [
     { days: ["Mon", "Wed", "Fri"], start: "09:30", end: "10:30", title: "Signals & Systems", type: "cat-class" },
@@ -220,8 +268,8 @@
     { days: ["Wed"], start: "14:30", end: "17:30", title: "Capstone Design", type: "cat-capstone-fixed" },
     { days: ["Mon"], start: "19:15", end: "20:15", title: "Capstone Meeting", type: "cat-capstone-fixed" },
     { days: ["Tue"], start: "20:00", end: "22:00", title: "Gym w/ Eric (Back/Bi)", type: "cat-gym" },
-    { days: ["Wed"], start: "20:00", end: "22:00", title: "Gym w/ Eric (Legs)", type: "cat-gym" },
-    { days: ["Sat"], start: "08:30", end: "10:30", title: "Gym w/ Eric (Push)", type: "cat-gym" }
+    { days: ["Wed"], start: "20:00", end: "22:00", title: "Gym w/ Eric (Chest/Shoulders/Tri)", type: "cat-gym" },
+    { days: ["Sat"], start: "08:30", end: "10:30", title: "Gym w/ Eric (Legs)", type: "cat-gym" }
   ];
 
   function timeToMinutes(t) { const [h, m] = t.split(":").map(Number); return h * 60 + m; }
@@ -231,12 +279,22 @@
   const DEFAULT_SCHEDULE = {"Mon_11:45":"hw","Mon_12:00":"hw","Mon_12:15":"hw","Mon_12:30":"hw","Mon_12:45":"hw","Mon_13:00":"hw","Mon_14:15":"capstone","Mon_14:30":"capstone","Mon_14:45":"capstone","Mon_15:00":"capstone","Mon_15:15":"capstone","Mon_15:30":"capstone","Mon_15:45":"capstone","Mon_16:00":"capstone","Mon_16:15":"capstone","Mon_16:30":"capstone","Mon_16:45":"capstone","Mon_17:00":"capstone","Mon_17:15":"capstone","Mon_17:30":"capstone","Mon_17:45":"capstone","Mon_18:00":"capstone","Mon_18:15":"capstone","Mon_18:30":"capstone","Mon_18:45":"capstone","Mon_19:00":"capstone","Wed_11:45":"personal","Wed_12:00":"personal","Wed_12:15":"capstone","Wed_12:30":"capstone","Wed_12:45":"capstone","Wed_13:00":"capstone","Wed_18:00":"intern","Wed_18:15":"intern","Wed_18:30":"intern","Wed_18:45":"intern","Wed_19:00":"personal","Wed_19:15":"personal","Wed_19:30":"personal","Wed_19:45":"personal","Wed_22:00":"hw","Wed_22:15":"hw","Wed_22:30":"hw","Wed_22:45":"hw","Wed_23:00":"personal","Wed_23:15":"personal","Wed_23:30":"hw","Wed_23:45":"hw","Thu_08:30":"capstone","Thu_08:45":"capstone","Thu_09:00":"capstone","Thu_09:15":"capstone","Thu_09:30":"capstone","Thu_09:45":"capstone","Thu_10:00":"capstone","Thu_10:15":"capstone","Thu_10:30":"capstone","Thu_10:45":"capstone","Thu_11:00":"capstone","Thu_11:15":"capstone","Thu_11:30":"capstone","Thu_11:45":"capstone","Thu_12:00":"capstone","Thu_13:45":"personal","Thu_14:00":"personal","Thu_14:15":"hw","Thu_14:30":"hw","Thu_14:45":"hw","Thu_15:00":"hw","Thu_15:15":"intern","Thu_15:30":"intern","Thu_15:45":"intern","Thu_16:00":"work","Thu_16:15":"work","Thu_16:30":"work","Thu_16:45":"work","Thu_17:00":"work","Thu_17:15":"work","Thu_17:30":"work","Thu_17:45":"work","Thu_18:00":"work","Thu_18:15":"work","Thu_18:30":"work","Thu_18:45":"work","Thu_19:00":"work","Thu_19:15":"work","Thu_19:30":"work","Thu_19:45":"work","Thu_20:00":"work","Thu_20:15":"work","Thu_20:30":"personal","Thu_20:45":"personal","Thu_21:00":"capstone","Thu_21:15":"capstone","Thu_21:30":"capstone","Thu_21:45":"capstone","Thu_22:00":"capstone","Thu_22:15":"capstone","Thu_22:30":"capstone","Thu_22:45":"capstone","Thu_23:00":"intern","Thu_23:15":"intern","Thu_23:30":"intern","Thu_23:45":"intern","Fri_11:45":"personal","Fri_12:00":"personal","Fri_12:15":"intern","Fri_12:30":"intern","Fri_12:45":"intern","Fri_13:00":"intern","Fri_14:15":"personal","Fri_14:30":"personal","Fri_14:45":"personal","Fri_15:00":"personal","Fri_15:15":"personal","Fri_15:30":"personal","Fri_15:45":"personal","Fri_16:00":"personal","Fri_16:15":"personal","Fri_16:30":"personal","Fri_16:45":"personal","Fri_17:00":"work","Fri_17:15":"work","Fri_17:30":"work","Fri_17:45":"work","Fri_18:00":"work","Fri_18:15":"work","Fri_18:30":"work","Fri_18:45":"work","Fri_19:00":"work","Fri_19:15":"work","Fri_19:30":"work","Fri_19:45":"work","Fri_20:00":"work","Fri_20:15":"work","Fri_20:30":"work","Fri_20:45":"work","Fri_21:30":"intern","Fri_21:45":"intern","Fri_22:00":"intern","Fri_22:15":"intern","Fri_22:30":"personal","Fri_22:45":"personal","Fri_23:00":"hw","Fri_23:15":"hw","Fri_23:30":"hw","Fri_23:45":"hw","Sat_10:30":"hw","Sat_10:45":"hw","Sat_11:00":"hw","Sat_11:15":"hw","Sat_11:30":"intern","Sat_11:45":"intern","Sat_12:00":"intern","Sat_12:15":"intern","Sat_12:30":"work","Sat_12:45":"work","Sat_13:00":"work","Sat_13:15":"work","Sat_13:30":"work","Sat_13:45":"work","Sat_14:00":"work","Sat_14:15":"work","Sat_14:30":"work","Sat_14:45":"work","Sat_15:00":"work","Sat_15:15":"work","Sat_15:30":"work","Sat_15:45":"work","Sat_16:00":"work","Sat_16:15":"work","Sat_16:30":"work","Sat_16:45":"work","Sat_17:00":"work","Sat_17:15":"work","Sat_17:30":"work","Sat_17:45":"work","Sat_18:00":"work","Sat_18:15":"work","Sat_18:30":"work","Sat_18:45":"work","Sat_19:00":"work","Sat_19:15":"work","Sat_19:30":"work","Sat_19:45":"work","Sat_20:00":"work","Sat_20:15":"work","Sat_20:30":"work","Sat_20:45":"work","Sat_21:00":"work","Sat_21:15":"work","Sat_22:00":"hw","Sat_22:15":"hw","Sat_22:30":"hw","Sat_22:45":"hw","Sat_23:00":"hw","Sat_23:15":"hw","Sat_23:30":"hw","Sat_23:45":"hw","Sun_08:00":"personal","Sun_08:15":"personal","Sun_08:30":"personal","Sun_08:45":"personal","Sun_09:00":"personal","Sun_09:15":"personal","Sun_09:30":"personal","Sun_09:45":"personal","Sun_10:00":"personal","Sun_10:15":"personal","Sun_10:30":"personal","Sun_10:45":"personal","Sun_11:00":"personal","Sun_11:15":"personal","Sun_11:30":"personal","Sun_11:45":"personal","Sun_12:00":"personal","Sun_12:15":"personal","Sun_12:30":"personal","Sun_12:45":"personal","Sun_13:00":"personal","Sun_13:15":"personal","Sun_13:30":"personal","Sun_13:45":"personal","Sun_17:00":"work","Sun_17:15":"work","Sun_17:30":"work","Sun_17:45":"work","Sun_18:00":"work","Sun_18:15":"work","Sun_18:30":"work","Sun_18:45":"work","Sun_19:00":"work","Sun_19:15":"work","Sun_19:30":"work","Sun_19:45":"work","Sun_20:00":"work","Sun_20:15":"work","Sun_20:30":"work","Sun_20:45":"work","Sun_21:00":"work","Sun_21:15":"work","Sun_22:00":"hw","Sun_22:15":"hw","Sun_22:30":"hw","Sun_22:45":"hw","Sun_23:00":"hw","Sun_23:15":"hw","Sun_23:30":"hw","Sun_23:45":"hw"};
 
   /* ---------- State (local cache first, then synced store wins) ---------- */
-  let savedSchedule = { ...DEFAULT_SCHEDULE }, savedDates = { ...DEFAULT_DATES };
+  const NOTES_STORAGE_KEY = "fall_schedule_notes_v1", NOTE_MAX = 600;
+  const NOTE_KEY_RE = /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)_\d\d:\d\d$/;
+  let savedSchedule = { ...DEFAULT_SCHEDULE }, savedDates = { ...DEFAULT_DATES }, savedNotes = {};
+  function cleanNotes(n) {
+    const out = {};
+    if (n && typeof n === "object") Object.entries(n).forEach(([k, v]) => {
+      if (NOTE_KEY_RE.test(k) && typeof v === "string" && v.trim()) out[k] = v.slice(0, NOTE_MAX);
+    });
+    return out;
+  }
   try {
     const s = JSON.parse(store.get(STORAGE_KEY) || "null");
     if (s && typeof s === "object") savedSchedule = s;
     const d = JSON.parse(store.get(DATES_STORAGE_KEY) || "null");
     if (d && Object.keys(d).length) savedDates = d;
+    savedNotes = cleanNotes(JSON.parse(store.get(NOTES_STORAGE_KEY) || "null"));
   } catch (e) {}
 
   /* ---------- Publish through GitHub (same flow as Card Flipz) ----------
@@ -245,7 +303,7 @@
      Every device loads the published schedule.json when it opens the site. */
   const REPO_OVERRIDE = ""; // Only needed if auto-detect fails, e.g. "Chaundoo/fall-schedule"
   const DATA_FILE = "schedule.json";
-  const CODES = { capstone: "c", intern: "i", hw: "h", work: "w", personal: "p" };
+  const CODES = { capstone: "c", intern: "i", hw: "h", work: "w", personal: "p", gym: "g" };
   const FROM_CODE = Object.fromEntries(Object.entries(CODES).map(([k, v]) => [v, k]));
   const UNPUB_KEY = "fall_schedule_unpublished", BASE_KEY = "fall_schedule_published_at", EDIT_KEY = "fall_schedule_last_edit", PENDING_KEY = "fall_schedule_pending_publish";
   const SLOT_KEYS = [];
@@ -258,7 +316,8 @@
   let pendingAt = Number(store.get(PENDING_KEY) || 0);
   let waitTimer = null, waitUntil = 0;
 
-  function stateJson() { return JSON.stringify({ dates: savedDates, schedule: savedSchedule }); }
+  function stateJson() { return JSON.stringify({ dates: savedDates, schedule: savedSchedule, notes: savedNotes }); }
+  const notesSig = (n) => JSON.stringify(Object.keys(n || {}).sort().map(k => [k, n[k]]));
 
   function detectRepo() {
     if (REPO_OVERRIDE) return REPO_OVERRIDE;
@@ -271,7 +330,7 @@
   function encodeState(stamp) {
     const days = {};
     DAYS.forEach(d => { days[d] = SLOT_KEYS.map(t => CODES[savedSchedule[`${d}_${t}`]] || ".").join(""); });
-    return { v: 1, updatedAt: stamp, dates: savedDates, days };
+    return { v: 1, updatedAt: stamp, dates: savedDates, days, notes: cleanNotes(savedNotes) };
   }
 
   function decodeState(data) {
@@ -280,12 +339,13 @@
       const s = (data.days || {})[d] || "";
       SLOT_KEYS.forEach((t, i) => { const cat = FROM_CODE[s[i]]; if (cat) schedule[`${d}_${t}`] = cat; });
     });
-    return { schedule, dates: { ...(data.dates || {}) } };
+    return { schedule, dates: { ...(data.dates || {}) }, notes: cleanNotes(data.notes) };
   }
 
   function sameAs(data) {
     const mine = encodeState(0);
-    return DAYS.every(d => mine.days[d] === ((data.days || {})[d] || "")) && DAYS.every(d => (savedDates[d] || "") === ((data.dates || {})[d] || ""));
+    return DAYS.every(d => mine.days[d] === ((data.days || {})[d] || "")) && DAYS.every(d => (savedDates[d] || "") === ((data.dates || {})[d] || ""))
+      && notesSig(mine.notes) === notesSig(cleanNotes(data.notes));
   }
 
   function setSync(state, text, sub) {
@@ -307,6 +367,7 @@
     lastEditAt = Date.now(); unpublished = true;
     store.set(STORAGE_KEY, JSON.stringify(savedSchedule));
     store.set(DATES_STORAGE_KEY, JSON.stringify(savedDates));
+    store.set(NOTES_STORAGE_KEY, JSON.stringify(savedNotes));
     store.set(EDIT_KEY, String(lastEditAt));
     store.set(UNPUB_KEY, "1");
     renderPublishState();
@@ -331,15 +392,16 @@
   }
 
   function applyPublished(data) {
-    const { schedule, dates } = decodeState(data);
-    savedSchedule = schedule; savedDates = dates;
+    const { schedule, dates, notes } = decodeState(data);
+    savedSchedule = schedule; savedDates = dates; savedNotes = notes;
     publishedAt = Number(data.updatedAt || 0);
     unpublished = false;
     store.set(STORAGE_KEY, JSON.stringify(savedSchedule));
     store.set(DATES_STORAGE_KEY, JSON.stringify(savedDates));
+    store.set(NOTES_STORAGE_KEY, JSON.stringify(savedNotes));
     store.set(BASE_KEY, String(publishedAt));
     store.set(UNPUB_KEY, "0");
-    if (!isMouseDown && !document.activeElement?.classList.contains("day-date-input")) { renderDayTabs(); buildGrid(); }
+    if (!isMouseDown && !document.activeElement?.classList.contains("day-date-input") && document.getElementById("noteModal").hidden) { renderDayTabs(); buildGrid(); }
   }
 
   const when = (ms) => new Date(ms).toLocaleString([], { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" });
@@ -388,14 +450,21 @@
     const repo = detectRepo();
     if (!repo) { showToast("Open this from your github.io site to publish.", true); return; }
     const stamp = Date.now();
+    pruneNotes();
     const data = encodeState(stamp);
     const title = `[schedule] Update ${when(stamp)}`;
     const body = "Tap **Submit new issue** to publish this schedule. The Publish schedule job saves it to the site and closes this issue.\n\nDon't edit the block below.\n\n```json\n" + JSON.stringify(data) + "\n```\n";
-    const url = `https://github.com/${repo}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
+    let url = `https://github.com/${repo}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
     pendingAt = stamp; store.set(PENDING_KEY, String(stamp));
-    startWaiting();
-    const w = window.open(url, "_blank");
-    if (!w) location.href = url;
+    const go = (u) => { startWaiting(); const w = window.open(u, "_blank"); if (!w) location.href = u; };
+    if (url.length <= 7500) { go(url); return; }
+    // Lots of notes make the link too long for GitHub, so the schedule goes through the clipboard instead.
+    const shortBody = "Your schedule is on your clipboard (it was too long for the link). Select all of this text, paste with Ctrl/Cmd+V, then tap **Submit new issue**.";
+    url = `https://github.com/${repo}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(shortBody)}`;
+    try {
+      navigator.clipboard.writeText(body).then(() => { showToast("Copied. Paste it into the GitHub issue body."); go(url); },
+        () => showToast("Couldn't copy to the clipboard. Shorten some notes and try again.", true));
+    } catch (e) { showToast("Couldn't copy to the clipboard. Shorten some notes and try again.", true); }
   }
 
   function startSync() {
@@ -538,14 +607,17 @@
           const fixed = getFixedEvent(day, slotMin);
           if (fixed) {
             slot.classList.add("locked", fixed.type);
-            if (fixed.isStart) slot.textContent = fixed.title;
           } else {
             const cat = savedSchedule[slotId];
             if (cat && CATEGORY_META[cat]) { slot.classList.add(CATEGORY_META[cat].className); slot.dataset.category = cat; }
-            slot.onmousedown = (e) => { if (e.button === 0 && requireUnlock()) { isMouseDown = true; applyTool(slot); } };
-            slot.onmouseenter = () => { if (isMouseDown && isUnlocked) applyTool(slot); };
-            slot.onclick = () => { if (requireUnlock()) applyTool(slot); }; // taps on phones
+            slot.onmousedown = (e) => { if (e.button === 0 && currentTool !== "note" && requireUnlock()) { isMouseDown = true; applyTool(slot); } };
+            slot.onmouseenter = () => { if (isMouseDown && isUnlocked && currentTool !== "note") applyTool(slot); };
           }
+          slot.onclick = () => { // taps on phones
+            if (!requireUnlock()) return;
+            if (currentTool === "note") openNote(slot);
+            else if (!fixed) applyTool(slot);
+          };
           grid.appendChild(slot);
         });
       }
@@ -557,8 +629,17 @@
     if (!isUnlocked || slot.classList.contains("locked")) return;
     const id = slot.dataset.slotId;
     const before = savedSchedule[id];
-    if (currentTool === "erase") { if (!before) return; delete savedSchedule[id]; }
-    else { if (before === currentTool) return; savedSchedule[id] = currentTool; }
+    if (currentTool === "erase" ? !before : before === currentTool) return;
+    if (savedNotes[id]) { // keep the note with whatever is left of its block
+      const [day] = id.split("_");
+      const b = getBlocks(day).find(x => x.keys.includes(id));
+      const i = b ? b.keys.indexOf(id) : -1;
+      const heir = b && (b.keys[i + 1] || b.keys[i - 1]);
+      if (heir) savedNotes[heir] = [savedNotes[heir], savedNotes[id]].filter(Boolean).join("\n").slice(0, NOTE_MAX);
+      delete savedNotes[id];
+    }
+    if (currentTool === "erase") delete savedSchedule[id];
+    else savedSchedule[id] = currentTool;
     Object.values(CATEGORY_META).forEach(m => slot.classList.remove(m.className));
     delete slot.dataset.category;
     if (currentTool !== "erase") { slot.classList.add(CATEGORY_META[currentTool].className); slot.dataset.category = currentTool; }
@@ -567,23 +648,104 @@
     updateLabelsAndQuotas();
   }
 
-  function updateLabelsAndQuotas() {
-    const visibleDays = activeDayFilter === "ALL" ? DAYS : [activeDayFilter];
-    visibleDays.forEach(day => {
-      let prev = null;
-      for (let h = START_HOUR; h < END_HOUR; h++) {
-        for (let m = 0; m < 60; m += 15) {
-          const id = `${day}_${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-          const slot = document.querySelector(`[data-slot-id="${id}"]`);
-          if (!slot || slot.classList.contains("locked")) { prev = null; continue; }
-          const cat = slot.dataset.category || null;
-          slot.textContent = (cat && cat !== prev) ? CATEGORY_META[cat].label : "";
-          prev = cat;
-        }
+  /* ---------- Blocks & notes ----------
+     A block is a run of back-to-back slots on one day with the same category (or the same fixed event).
+     A block's note is saved under its first slot, e.g. "Tue_13:45". */
+  function getBlocks(day) {
+    const blocks = [];
+    let cur = null;
+    SLOT_KEYS.forEach((t, i) => {
+      const fixed = getFixedEvent(day, timeToMinutes(t));
+      const cat = fixed ? null : savedSchedule[`${day}_${t}`];
+      const sig = fixed ? `F:${fixed.title}|${fixed.start}` : (cat && CATEGORY_META[cat] ? `C:${cat}` : null);
+      if (sig && cur && cur.sig === sig) { cur.end = i; cur.keys.push(`${day}_${t}`); return; }
+      cur = null;
+      if (!sig) return;
+      cur = { sig, day, start: i, end: i, keys: [`${day}_${t}`], fixed: !!fixed, cat,
+              label: fixed ? fixed.title : catLabel(cat, day), className: fixed ? fixed.type : CATEGORY_META[cat].className };
+      blocks.push(cur);
+    });
+    return blocks;
+  }
+  const blockNote = (b) => b.keys.map(k => savedNotes[k]).filter(Boolean).join("\n");
+
+  function renderLabels(day) {
+    const blocks = getBlocks(day);
+    const byKey = {};
+    blocks.forEach(b => b.keys.forEach((k, i) => byKey[k] = { b, i }));
+    SLOT_KEYS.forEach(t => {
+      const id = `${day}_${t}`;
+      const slot = document.querySelector(`[data-slot-id="${id}"]`);
+      if (!slot) return;
+      slot.textContent = ""; slot.classList.remove("has-note"); slot.removeAttribute("title");
+      const hit = byKey[id];
+      if (!hit) return;
+      const note = blockNote(hit.b);
+      if (note) slot.title = `${hit.b.label}\n\n${note}`;
+      if (hit.i === 0) {
+        const s = document.createElement("span"); s.className = "label-text"; s.textContent = hit.b.label;
+        slot.appendChild(s);
+        if (note) slot.classList.add("has-note");
+      } else if (note) {
+        const line = note.split("\n").map(l => l.trim()).filter(Boolean)[hit.i - 1];
+        if (line) { const s = document.createElement("span"); s.className = "note-line"; s.textContent = line; slot.appendChild(s); }
       }
     });
+  }
+
+  const clock = (idx) => { const min = START_HOUR * 60 + idx * 15, h = Math.floor(min / 60) % 24, m = min % 60;
+    return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`; };
+  let noteBlock = null;
+
+  function openNote(slot) {
+    const [day, t] = slot.dataset.slotId.split("_");
+    const b = getBlocks(day).find(x => x.keys.includes(`${day}_${t}`));
+    if (!b) { showToast("Paint a block here first, then add a note to it.", true); return; }
+    noteBlock = b;
+    document.getElementById("noteTitle").textContent = b.label;
+    document.getElementById("noteDot").className = "color-dot " + b.className;
+    document.getElementById("noteSub").textContent = `${day}${savedDates[day] ? " " + savedDates[day] : ""} · ${clock(b.start)} – ${clock(b.end + 1)}`;
+    const ta = document.getElementById("noteText");
+    ta.value = blockNote(b).slice(0, NOTE_MAX);
+    document.getElementById("noteDelete").hidden = !ta.value;
+    updateNoteCount();
+    document.getElementById("noteModal").hidden = false;
+    ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+  }
+  function updateNoteCount() { document.getElementById("noteCount").textContent = `${document.getElementById("noteText").value.length} / ${NOTE_MAX}`; }
+  function closeNote() { document.getElementById("noteModal").hidden = true; noteBlock = null; }
+  function saveNote(text) {
+    if (!noteBlock || !requireUnlock()) return;
+    const b = noteBlock;
+    b.keys.forEach(k => delete savedNotes[k]);
+    const v = (text || "").replace(/\s+$/, "").slice(0, NOTE_MAX);
+    if (v.trim()) savedNotes[b.keys[0]] = v;
+    closeNote(); persist(); renderLabels(b.day);
+    showToast(v.trim() ? "Note saved" : "Note deleted");
+  }
+  document.getElementById("noteText").oninput = updateNoteCount;
+  document.getElementById("noteSave").onclick = () => saveNote(document.getElementById("noteText").value);
+  document.getElementById("noteDelete").onclick = () => saveNote("");
+  document.getElementById("noteCancel").onclick = closeNote;
+  document.getElementById("noteModal").onclick = (e) => { if (e.target.id === "noteModal") closeNote(); };
+  document.getElementById("noteText").onkeydown = (e) => {
+    if (e.key === "Escape") closeNote();
+    else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) saveNote(e.target.value);
+  };
+  // Keep notes only where a block still starts or continues; drop notes on slots that are now empty.
+  function pruneNotes() {
+    Object.keys(savedNotes).forEach(k => {
+      const [day, t] = k.split("_");
+      if (!getFixedEvent(day, timeToMinutes(t)) && !savedSchedule[k]) delete savedNotes[k];
+    });
+  }
+
+  function updateLabelsAndQuotas() {
+    const visibleDays = activeDayFilter === "ALL" ? DAYS : [activeDayFilter];
+    visibleDays.forEach(renderLabels);
     const counts = { capstone: 0, intern: 0, hw: 0 };
     Object.values(savedSchedule).forEach(c => { if (counts[c] !== undefined) counts[c] += 0.25; });
+    const sunGym = Object.entries(savedSchedule).filter(([k, c]) => c === "gym" && k.startsWith("Sun_")).length * 0.25;
     const setCard = (hrs, target, tId, bId, sId) => {
       document.getElementById(tId).textContent = `${hrs.toFixed(2)} / ${target.toFixed(1)} hrs`;
       document.getElementById(bId).style.width = `${Math.min(100, (hrs / target) * 100)}%`;
@@ -594,6 +756,7 @@
     setCard(counts.capstone, 9, "capText", "capBar", "capStatus");
     setCard(counts.intern, 7, "internText", "internBar", "internStatus");
     setCard(counts.hw, 6, "hwText", "hwBar", "hwStatus");
+    setCard(sunGym, SUNDAY_GYM_TARGET, "gymText", "gymBar", "gymStatus");
   }
 
   let toastTimer = null;
@@ -636,6 +799,7 @@
       if (!parsed || (!parsed.schedule && !parsed.dates)) throw new Error();
       if (parsed.schedule) savedSchedule = parsed.schedule;
       if (parsed.dates) savedDates = parsed.dates;
+      savedNotes = cleanNotes(parsed.notes);
       persist(); renderDayTabs(); buildGrid(); showToast("Schedule loaded");
     } catch (e) { showToast("That Save Code isn't valid. Paste the full code and try again.", true); }
   };
@@ -652,12 +816,12 @@
   };
 
   armButton(document.getElementById("restoreDefaultBtn"), "Tap again to restore", () => {
-    savedSchedule = { ...DEFAULT_SCHEDULE }; savedDates = { ...DEFAULT_DATES };
+    savedSchedule = { ...DEFAULT_SCHEDULE }; savedDates = { ...DEFAULT_DATES }; pruneNotes();
     persist(); renderDayTabs(); buildGrid(); showToast("Default schedule restored");
   });
 
   armButton(document.getElementById("clearFlexBtn"), "Tap again to clear", () => {
-    savedSchedule = {}; persist(); buildGrid(); showToast("Flexible blocks cleared");
+    savedSchedule = {}; pruneNotes(); persist(); buildGrid(); showToast("Flexible blocks cleared");
   });
 
   window.addEventListener("mouseup", () => { isMouseDown = false; });
@@ -666,6 +830,10 @@
       if (!requireUnlock()) return;
       document.querySelectorAll(".tool-btn").forEach(b => b.classList.remove("active"));
       btn.classList.add("active"); currentTool = btn.dataset.tool;
+      document.body.classList.toggle("note-mode", currentTool === "note");
+      document.getElementById("toolHint").textContent = currentTool === "note"
+        ? "Notes mode: tap any block (homework, capstone, classes…) to add or edit its note."
+        : "Tip: pick ✎ Notes, then tap any block to write notes on it.";
     };
   });
 
