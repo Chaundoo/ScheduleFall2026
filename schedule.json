@@ -1,22 +1,23 @@
 {
   "v": 1,
-  "updatedAt": 1792997777052,
+  "updatedAt": 1793688419231,
   "dates": {
-    "Mon": "10/20",
-    "Tue": "10/20",
-    "Wed": "10/21",
-    "Thu": "10/22",
-    "Fri": "10/23",
-    "Sat": "10/24",
-    "Sun": "10/25"
+    "Mon": "11/9",
+    "Tue": "11/3",
+    "Wed": "11/4",
+    "Thu": "11/5",
+    "Fri": "11/6",
+    "Sat": "11/7",
+    "Sun": "11/8"
   },
   "days": {
-    "Mon": "...................ppcccc....ppcccccccccppccccccc....ppppppphhhhhhhh",
-    "Tue": "...........................hhhhhpphhhhhhhhhhpphhhhhh........pphhhhhh",
-    "Wed": "...................piiiii.................pppp..............ppiiiiii",
-    "Thu": "..........iiiiiihhhhh......ppcccccccccccwwwwwwwwwwwwwwwwww..........",
-    "Fri": "...................pphhhh....hhhhhhcccccwwwwwwwwwwwwwwwwwwwwwwww....",
-    "Sat": "..............iiiihhhhpphhhhhhwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww....",
-    "Sun": "....pppppppppppppppppppppppp....hhhhhhhhwwwwwwwwwwwwwwwwwwwwwwwwhhhh"
-  }
+    "Mon": "....................................................................",
+    "Tue": "....................................................................",
+    "Wed": "....................................................................",
+    "Thu": "........................................wwwwwwwwwwwwwwwwww..........",
+    "Fri": "........................................wwwwwwwwwwwwwwwwwwwwwwww....",
+    "Sat": "......................................wwwwwwwwwwwwwwwwwwww..........",
+    "Sun": "....pppppppppppppppppppppppp..............wwwwwwwwwwwwwwww.........."
+  },
+  "notes": {}
 }
